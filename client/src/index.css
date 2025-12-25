@@ -88,7 +88,27 @@ input:focus, textarea:focus, select:focus, button:focus {
 }
 
 .input-label {
-  @apply block text-sm font-medium text-gray-700 mb-2;
+  @apply block text-base font-medium text-gray-700 mb-2;
+}
+
+/* Mobile bigger fonts */
+@media (max-width: 640px) {
+  .input {
+    @apply text-base;
+    font-size: 16px !important;
+  }
+
+  .input-label {
+    @apply text-base font-semibold;
+  }
+
+  h2, .text-lg {
+    @apply text-xl;
+  }
+
+  select option {
+    font-size: 16px;
+  }
 }
 
 /* Status badges */

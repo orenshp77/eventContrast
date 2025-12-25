@@ -272,12 +272,12 @@ export default function EventForm() {
     <Layout title={isEdit ? 'עריכת אירוע' : 'חזרה לעמוד הראשי'} showBack>
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Basic Info Card */}
-        <div className="card">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">יצירת הסכם קבוע לסוג הארוע הרצוי</h2>
+        <div className="card border-2 border-green-100">
+          <h2 className="text-xl font-bold text-gray-900 mb-6">יצירת הסכם קבוע לסוג הארוע הרצוי</h2>
 
-          <div className="space-y-4">
+          <div className="space-y-5">
             <div>
-              <label className="input-label">סוג האירוע *</label>
+              <label className="input-label text-base">שם סוג ההסכם *</label>
               <input
                 type="text"
                 name="title"
@@ -290,7 +290,7 @@ export default function EventForm() {
             </div>
 
             <div>
-              <label className="input-label">תיאור</label>
+              <label className="input-label text-base">תיאור</label>
               <textarea
                 name="description"
                 className="input min-h-[100px]"
@@ -302,7 +302,7 @@ export default function EventForm() {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="input-label">מחיר (אופציונלי)</label>
+                <label className="input-label text-base">מחיר (אופציונלי)</label>
                 <input
                   type="number"
                   name="price"
@@ -315,7 +315,7 @@ export default function EventForm() {
                 />
               </div>
               <div>
-                <label className="input-label">צבע ערכת נושא</label>
+                <label className="input-label text-base">צבע ערכת נושא</label>
                 <div className="flex gap-2">
                   <input
                     type="color"
@@ -338,12 +338,12 @@ export default function EventForm() {
         </div>
 
         {/* Default Text Card */}
-        <div className="card">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">תקנון / הערות קבועות</h2>
+        <div className="card border-2 border-blue-100">
+          <h2 className="text-xl font-bold text-gray-900 mb-6">תקנון / הערות קבועות</h2>
 
           {/* Template Selection */}
           <div className="mb-4">
-            <label className="input-label mb-2">בחר תקנון מוכן (ניתן לערוך אחרי בחירה)</label>
+            <label className="input-label text-base mb-2">בחר תקנון מוכן (ניתן לערוך אחרי בחירה)</label>
             <select
               className="input"
               onChange={(e) => {
@@ -379,13 +379,13 @@ export default function EventForm() {
         </div>
 
         {/* Fields Schema Card */}
-        <div className="card">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">שדות שניתן להוסיף לטופס ההסכם</h2>
+        <div className="card border-2 border-primary-100">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-bold text-gray-900">שדות שניתן להוסיף לטופס ההסכם</h2>
             <button
               type="button"
               onClick={addField}
-              className="btn btn-secondary text-sm py-2"
+              className="btn btn-primary text-base py-2 px-4"
             >
               + הוסף שדה
             </button>
@@ -393,22 +393,25 @@ export default function EventForm() {
 
           <div className="space-y-4">
             {formData.fieldsSchema.map((field, index) => (
-              <div key={field.id} className="p-4 bg-gray-50 rounded-xl">
-                <div className="flex items-start gap-4">
-                  <div className="flex-1 grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="input-label text-xs">שם השדה</label>
-                      <input
-                        type="text"
-                        className="input py-2 text-sm"
-                        value={field.label}
-                        onChange={(e) => handleFieldChange(index, { label: e.target.value })}
-                      />
-                    </div>
-                    <div>
-                      <label className="input-label text-xs">סוג שדה</label>
+              <div key={field.id} className="p-5 bg-gradient-to-r from-gray-50 to-primary-50 rounded-xl border border-gray-200 shadow-sm">
+                <div className="flex flex-col gap-4">
+                  {/* Field name - full width */}
+                  <div>
+                    <label className="input-label text-base font-semibold text-primary-700">שם השדה</label>
+                    <input
+                      type="text"
+                      className="input text-base py-3"
+                      value={field.label}
+                      onChange={(e) => handleFieldChange(index, { label: e.target.value })}
+                    />
+                  </div>
+
+                  {/* Type and controls row */}
+                  <div className="flex items-center gap-4">
+                    <div className="flex-1">
+                      <label className="input-label text-base font-semibold text-primary-700">סוג שדה</label>
                       <select
-                        className="input py-2 text-sm"
+                        className="input text-base py-3"
                         value={field.type}
                         onChange={(e) => handleFieldChange(index, { type: e.target.value as FieldSchema['type'] })}
                       >
@@ -420,24 +423,25 @@ export default function EventForm() {
                         <option value="textarea">טקסט ארוך</option>
                       </select>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-2 pt-6">
-                    <label className="flex items-center gap-2 text-sm">
-                      <input
-                        type="checkbox"
-                        checked={field.required}
-                        onChange={(e) => handleFieldChange(index, { required: e.target.checked })}
-                        className="w-4 h-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-                      />
-                      חובה
-                    </label>
-                    <button
-                      type="button"
-                      onClick={() => removeField(index)}
-                      className="w-8 h-8 flex items-center justify-center text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                    >
-                      🗑️
-                    </button>
+
+                    <div className="flex items-center gap-3 pt-8">
+                      <label className="flex items-center gap-2 text-base font-medium bg-white px-3 py-2 rounded-lg border border-gray-200">
+                        <input
+                          type="checkbox"
+                          checked={field.required}
+                          onChange={(e) => handleFieldChange(index, { required: e.target.checked })}
+                          className="w-5 h-5 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                        />
+                        חובה
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => removeField(index)}
+                        className="w-10 h-10 flex items-center justify-center text-red-500 hover:bg-red-100 bg-white rounded-lg transition-colors border border-red-200"
+                      >
+                        🗑️
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
