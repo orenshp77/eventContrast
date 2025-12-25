@@ -1,5 +1,5 @@
 import { v4 as uuidv4 } from 'uuid';
-import crypto from 'crypto';
+import * as crypto from 'crypto';
 
 export function generateInviteToken(): string {
   // Generate a random 32-character token that's URL-safe

@@ -1,6 +1,6 @@
 import PDFDocument from 'pdfkit';
-import fs from 'fs';
-import path from 'path';
+import * as fs from 'fs';
+import * as path from 'path';
 import { generateFileName } from './token';
 
 interface PdfData {
@@ -52,15 +52,9 @@ const fieldLabels: Record<string, string> = {
   eventLocation: 'מיקום/כתובת הארוע',
 };
 
-// Reverse Hebrew text for RTL support in PDFKit
-function reverseHebrew(text: string): string {
-  if (!text) return '';
-  return text.split('').reverse().join('');
-}
-
 export async function generatePdf(data: PdfData): Promise<string> {
   // Ensure uploads directory exists
-  const uploadsDir = path.join(__dirname, '../../../uploads');
+  const uploadsDir = path.resolve(process.cwd(), 'uploads');
   if (!fs.existsSync(uploadsDir)) {
     fs.mkdirSync(uploadsDir, { recursive: true });
   }
@@ -84,20 +78,9 @@ export async function generatePdf(data: PdfData): Promise<string> {
       const writeStream = fs.createWriteStream(filePath);
       doc.pipe(writeStream);
 
-      // Use built-in font that supports basic characters
-      const fontPath = path.join(__dirname, '../fonts/Rubik-Regular.ttf');
-      const fontBoldPath = path.join(__dirname, '../fonts/Rubik-Bold.ttf');
-
-      // Check if Hebrew fonts exist, otherwise use Helvetica
-      const hasHebrewFont = fs.existsSync(fontPath);
-
-      if (hasHebrewFont) {
-        doc.registerFont('Hebrew', fontPath);
-        doc.registerFont('HebrewBold', fontBoldPath);
-      }
-
-      const useFont = hasHebrewFont ? 'Hebrew' : 'Helvetica';
-      const useBoldFont = hasHebrewFont ? 'HebrewBold' : 'Helvetica-Bold';
+      // Use built-in font
+      const useFont = 'Helvetica';
+      const useBoldFont = 'Helvetica-Bold';
 
       // Header
       doc.font(useBoldFont)
@@ -132,35 +115,35 @@ export async function generatePdf(data: PdfData): Promise<string> {
       const rightCol = 40;
 
       // Right column
-      doc.text('תאריך האירוע:', rightCol, startY, { continued: true, align: 'right', width: 100 })
+      doc.text('Event Date:', rightCol, startY, { continued: true, width: 100 })
          .font(useFont)
-         .text(' ' + (data.event.eventDate ? formatDateHebrew(data.event.eventDate) : '-'), { align: 'right' });
+         .text(' ' + (data.event.eventDate ? formatDateHebrew(data.event.eventDate) : '-'));
 
       doc.font(useBoldFont)
-         .text('נייד:', rightCol, startY + 20, { continued: true, align: 'right', width: 100 })
+         .text('Phone:', rightCol, startY + 20, { continued: true, width: 100 })
          .font(useFont)
-         .text(' ' + (customerPhone || '-'), { align: 'right' });
+         .text(' ' + (customerPhone || '-'));
 
       doc.font(useBoldFont)
-         .text('מיקום:', rightCol, startY + 40, { continued: true, align: 'right', width: 100 })
+         .text('Location:', rightCol, startY + 40, { continued: true, width: 100 })
          .font(useFont)
-         .text(' ' + (data.customer.eventLocation || '-'), { align: 'right' });
+         .text(' ' + (data.customer.eventLocation || '-'));
 
       // Left column
       doc.font(useBoldFont)
-         .text('המזמינים:', leftCol, startY, { continued: true, align: 'right', width: 100 })
+         .text('Customer:', leftCol, startY, { continued: true, width: 100 })
          .font(useFont)
-         .text(' ' + (data.customer.name || '-'), { align: 'right' });
+         .text(' ' + (data.customer.name || '-'));
 
       doc.font(useBoldFont)
-         .text('סוג האירוע:', leftCol, startY + 20, { continued: true, align: 'right', width: 100 })
+         .text('Event Type:', leftCol, startY + 20, { continued: true, width: 100 })
          .font(useFont)
-         .text(' ' + (data.customer.eventType || '-'), { align: 'right' });
+         .text(' ' + (data.customer.eventType || '-'));
 
       doc.font(useBoldFont)
-         .text('מחיר:', leftCol, startY + 40, { continued: true, align: 'right', width: 100 })
+         .text('Price:', leftCol, startY + 40, { continued: true, width: 100 })
          .font(useFont)
-         .text(' ' + (data.event.price ? formatPrice(data.event.price) : '-'), { align: 'right' });
+         .text(' ' + (data.event.price ? formatPrice(data.event.price) : '-'));
 
       doc.y = startY + 80;
 
@@ -175,9 +158,9 @@ export async function generatePdf(data: PdfData): Promise<string> {
           const label = fieldLabels[key] || key;
           doc.font(useBoldFont)
              .fontSize(10)
-             .text(label + ':', { continued: true, align: 'right' })
+             .text(label + ':', { continued: true })
              .font(useFont)
-             .text(' ' + value, { align: 'right' });
+             .text(' ' + value);
         }
       }
 
@@ -196,7 +179,7 @@ export async function generatePdf(data: PdfData): Promise<string> {
         doc.font(useBoldFont)
            .fontSize(14)
            .fillColor('#333333')
-           .text('תנאים כלליים', { align: 'right' });
+           .text('Terms & Conditions', { align: 'right' });
 
         doc.moveDown(0.5);
 
@@ -245,7 +228,7 @@ export async function generatePdf(data: PdfData): Promise<string> {
       doc.font(useBoldFont)
          .fontSize(11)
          .fillColor('#333333')
-         .text('שם המזמין', 320, sigY + 10, { width: boxWidth, align: 'center' });
+         .text('Customer Name', 320, sigY + 10, { width: boxWidth, align: 'center' });
 
       doc.font(useFont)
          .fontSize(14)
@@ -258,7 +241,7 @@ export async function generatePdf(data: PdfData): Promise<string> {
 
       doc.font(useBoldFont)
          .fontSize(11)
-         .text('חתימת המזמין', 80, sigY + 10, { width: boxWidth, align: 'center' });
+         .text('Signature', 80, sigY + 10, { width: boxWidth, align: 'center' });
 
       // Add signature image if exists
       if (data.signature && data.signature.startsWith('data:image')) {
@@ -266,8 +249,8 @@ export async function generatePdf(data: PdfData): Promise<string> {
           const base64Data = data.signature.replace(/^data:image\/\w+;base64,/, '');
           const sigBuffer = Buffer.from(base64Data, 'base64');
           doc.image(sigBuffer, 110, sigY + 35, { width: 140, height: 55 });
-        } catch (err) {
-          console.error('Failed to add signature image:', err);
+        } catch (error: unknown) {
+          console.error('Failed to add signature image:', error);
         }
       }
 
@@ -276,7 +259,7 @@ export async function generatePdf(data: PdfData): Promise<string> {
       doc.font(useFont)
          .fontSize(10)
          .fillColor('#666666')
-         .text('נחתם ביום ' + data.submittedAt.toLocaleDateString('he-IL'), { align: 'center' });
+         .text('Signed on: ' + data.submittedAt.toLocaleDateString('he-IL'), { align: 'center' });
 
       // Footer
       const footerText = [data.event.businessWebsite, data.event.businessPhone].filter(Boolean).join('  |  ');
@@ -293,8 +276,8 @@ export async function generatePdf(data: PdfData): Promise<string> {
         resolve(fileName);
       });
 
-      writeStream.on('error', (err) => {
-        reject(err);
+      writeStream.on('error', (error: Error) => {
+        reject(error);
       });
 
     } catch (error) {
