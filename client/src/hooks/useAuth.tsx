@@ -46,12 +46,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const fetchUser = async () => {
     try {
+      console.log('Fetching user...');
       const response = await api.get('/auth/me');
+      console.log('User fetched:', response.data);
       setUser(response.data);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to fetch user:', error);
+      console.error('Error details:', error.response?.status, error.response?.data);
       localStorage.removeItem('token');
       setToken(null);
+      setUser(null);
       delete api.defaults.headers.common['Authorization'];
     } finally {
       setLoading(false);
