@@ -17,7 +17,10 @@ export default function Login() {
       await login(email, password);
       showToast.success('התחברת בהצלחה!');
     } catch (error: any) {
-      showToast.error(error.response?.data?.message || 'שגיאה בהתחברות');
+      console.error('Login error:', error);
+      const message = error.response?.data?.message || 'סיסמה או משתמש לא נכון';
+      showToast.error(message);
+      setPassword('');
     } finally {
       setLoading(false);
     }
