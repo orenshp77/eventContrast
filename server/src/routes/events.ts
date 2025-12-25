@@ -2,7 +2,6 @@ import { Router } from 'express';
 import pool from '../db/connection';
 import { eventSchema } from '../utils/validation';
 import { authMiddleware, AuthRequest } from '../middleware/auth';
-import { RowDataPacket } from 'mysql2';
 
 const router = Router();
 
@@ -12,16 +11,16 @@ router.use(authMiddleware);
 // GET /api/events - Get all events for user
 router.get('/', async (req: AuthRequest, res, next) => {
   try {
-    const [events] = await pool.execute<RowDataPacket[]>(
+    const events = await pool.query(
       `SELECT e.*,
         (SELECT COUNT(*) FROM invites WHERE event_id = e.id) as invite_count
        FROM events e
-       WHERE e.user_id = ?
+       WHERE e.user_id = $1
        ORDER BY e.created_at DESC`,
       [req.userId]
     );
 
-    res.json(events.map(event => ({
+    res.json(events.rows.map(event => ({
       id: event.id,
       userId: event.user_id,
       title: event.title,
@@ -31,10 +30,10 @@ router.get('/', async (req: AuthRequest, res, next) => {
       price: event.price,
       defaultText: event.default_text,
       themeColor: event.theme_color,
-      fieldsSchema: event.fields_schema ? (typeof event.fields_schema === 'string' ? JSON.parse(event.fields_schema) : event.fields_schema) : [],
+      fieldsSchema: event.fields_schema || [],
       createdAt: event.created_at,
       updatedAt: event.updated_at,
-      inviteCount: event.invite_count,
+      inviteCount: parseInt(event.invite_count),
     })));
   } catch (error) {
     next(error);
@@ -44,19 +43,19 @@ router.get('/', async (req: AuthRequest, res, next) => {
 // GET /api/events/:id - Get single event
 router.get('/:id', async (req: AuthRequest, res, next) => {
   try {
-    const [events] = await pool.execute<RowDataPacket[]>(
+    const events = await pool.query(
       `SELECT e.*,
         (SELECT COUNT(*) FROM invites WHERE event_id = e.id) as invite_count
        FROM events e
-       WHERE e.id = ? AND e.user_id = ?`,
+       WHERE e.id = $1 AND e.user_id = $2`,
       [req.params.id, req.userId]
     );
 
-    if (events.length === 0) {
+    if (events.rows.length === 0) {
       return res.status(404).json({ message: 'אירוע לא נמצא' });
     }
 
-    const event = events[0];
+    const event = events.rows[0];
 
     res.json({
       id: event.id,
@@ -68,10 +67,10 @@ router.get('/:id', async (req: AuthRequest, res, next) => {
       price: event.price,
       defaultText: event.default_text,
       themeColor: event.theme_color,
-      fieldsSchema: event.fields_schema ? (typeof event.fields_schema === 'string' ? JSON.parse(event.fields_schema) : event.fields_schema) : [],
+      fieldsSchema: event.fields_schema || [],
       createdAt: event.created_at,
       updatedAt: event.updated_at,
-      inviteCount: event.invite_count,
+      inviteCount: parseInt(event.invite_count),
     });
   } catch (error) {
     next(error);
@@ -83,9 +82,9 @@ router.post('/', async (req: AuthRequest, res, next) => {
   try {
     const data = eventSchema.parse(req.body);
 
-    const [result] = await pool.execute(
+    const result = await pool.query(
       `INSERT INTO events (user_id, title, description, location, event_date, price, default_text, theme_color, fields_schema)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id`,
       [
         req.userId,
         data.title,
@@ -99,14 +98,14 @@ router.post('/', async (req: AuthRequest, res, next) => {
       ]
     );
 
-    const eventId = (result as any).insertId;
+    const eventId = result.rows[0].id;
 
-    const [events] = await pool.execute<RowDataPacket[]>(
-      'SELECT * FROM events WHERE id = ?',
+    const events = await pool.query(
+      'SELECT * FROM events WHERE id = $1',
       [eventId]
     );
 
-    const event = events[0];
+    const event = events.rows[0];
 
     res.status(201).json({
       id: event.id,
@@ -118,7 +117,7 @@ router.post('/', async (req: AuthRequest, res, next) => {
       price: event.price,
       defaultText: event.default_text,
       themeColor: event.theme_color,
-      fieldsSchema: event.fields_schema ? (typeof event.fields_schema === 'string' ? JSON.parse(event.fields_schema) : event.fields_schema) : [],
+      fieldsSchema: event.fields_schema || [],
       createdAt: event.created_at,
       updatedAt: event.updated_at,
       inviteCount: 0,
@@ -134,20 +133,20 @@ router.put('/:id', async (req: AuthRequest, res, next) => {
     const data = eventSchema.parse(req.body);
 
     // Check ownership
-    const [existing] = await pool.execute<RowDataPacket[]>(
-      'SELECT id FROM events WHERE id = ? AND user_id = ?',
+    const existing = await pool.query(
+      'SELECT id FROM events WHERE id = $1 AND user_id = $2',
       [req.params.id, req.userId]
     );
 
-    if (existing.length === 0) {
+    if (existing.rows.length === 0) {
       return res.status(404).json({ message: 'אירוע לא נמצא' });
     }
 
-    await pool.execute(
+    await pool.query(
       `UPDATE events SET
-        title = ?, description = ?, location = ?, event_date = ?,
-        price = ?, default_text = ?, theme_color = ?, fields_schema = ?
-       WHERE id = ? AND user_id = ?`,
+        title = $1, description = $2, location = $3, event_date = $4,
+        price = $5, default_text = $6, theme_color = $7, fields_schema = $8
+       WHERE id = $9 AND user_id = $10`,
       [
         data.title,
         data.description || null,
@@ -162,15 +161,15 @@ router.put('/:id', async (req: AuthRequest, res, next) => {
       ]
     );
 
-    const [events] = await pool.execute<RowDataPacket[]>(
+    const events = await pool.query(
       `SELECT e.*,
         (SELECT COUNT(*) FROM invites WHERE event_id = e.id) as invite_count
        FROM events e
-       WHERE e.id = ?`,
+       WHERE e.id = $1`,
       [req.params.id]
     );
 
-    const event = events[0];
+    const event = events.rows[0];
 
     res.json({
       id: event.id,
@@ -182,10 +181,10 @@ router.put('/:id', async (req: AuthRequest, res, next) => {
       price: event.price,
       defaultText: event.default_text,
       themeColor: event.theme_color,
-      fieldsSchema: event.fields_schema ? (typeof event.fields_schema === 'string' ? JSON.parse(event.fields_schema) : event.fields_schema) : [],
+      fieldsSchema: event.fields_schema || [],
       createdAt: event.created_at,
       updatedAt: event.updated_at,
-      inviteCount: event.invite_count,
+      inviteCount: parseInt(event.invite_count),
     });
   } catch (error) {
     next(error);
@@ -195,12 +194,12 @@ router.put('/:id', async (req: AuthRequest, res, next) => {
 // DELETE /api/events/:id - Delete event
 router.delete('/:id', async (req: AuthRequest, res, next) => {
   try {
-    const [result] = await pool.execute(
-      'DELETE FROM events WHERE id = ? AND user_id = ?',
+    const result = await pool.query(
+      'DELETE FROM events WHERE id = $1 AND user_id = $2',
       [req.params.id, req.userId]
     );
 
-    if ((result as any).affectedRows === 0) {
+    if (result.rowCount === 0) {
       return res.status(404).json({ message: 'אירוע לא נמצא' });
     }
 

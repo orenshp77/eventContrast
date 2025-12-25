@@ -1,39 +1,42 @@
-import mysql from 'mysql2/promise';
+import { Pool, QueryResult } from 'pg';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
-const pool = mysql.createPool({
-  host: process.env.DB_HOST || 'localhost',
-  port: parseInt(process.env.DB_PORT || '3306'),
-  user: process.env.DB_USER || 'eventuser',
-  password: process.env.DB_PASSWORD || 'eventpass',
-  database: process.env.DB_NAME || 'event_invite',
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0,
-  charset: 'utf8mb4',
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
 });
 
+// Helper to make queries compatible with mysql2 style
+export const query = async (text: string, params?: any[]): Promise<QueryResult> => {
+  // Convert MySQL ? placeholders to PostgreSQL $1, $2, etc.
+  let paramIndex = 0;
+  const pgText = text.replace(/\?/g, () => `$${++paramIndex}`);
+  return pool.query(pgText, params);
+};
+
+export const execute = query;
+
 export async function initDatabase() {
-  const connection = await pool.getConnection();
+  const client = await pool.connect();
   try {
     // Test connection
-    await connection.ping();
+    await client.query('SELECT NOW()');
     console.log('Database connection established');
 
     // Run migrations if needed
-    await runMigrations(connection);
+    await runMigrations(client);
   } finally {
-    connection.release();
+    client.release();
   }
 }
 
-async function runMigrations(connection: mysql.PoolConnection) {
+async function runMigrations(client: any) {
   // Create tables if they don't exist
   const createUsersTable = `
     CREATE TABLE IF NOT EXISTS users (
-      id INT AUTO_INCREMENT PRIMARY KEY,
+      id SERIAL PRIMARY KEY,
       name VARCHAR(255) NOT NULL,
       email VARCHAR(255) NOT NULL UNIQUE,
       password_hash VARCHAR(255) NOT NULL,
@@ -42,15 +45,14 @@ async function runMigrations(connection: mysql.PoolConnection) {
       business_logo TEXT,
       business_website VARCHAR(255),
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-      INDEX idx_email (email)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
   `;
 
   const createEventsTable = `
     CREATE TABLE IF NOT EXISTS events (
-      id INT AUTO_INCREMENT PRIMARY KEY,
-      user_id INT NOT NULL,
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
       title VARCHAR(255) NOT NULL,
       description TEXT,
       location VARCHAR(500),
@@ -58,73 +60,58 @@ async function runMigrations(connection: mysql.PoolConnection) {
       price DECIMAL(10, 2),
       default_text TEXT,
       theme_color VARCHAR(7) DEFAULT '#7C3AED',
-      fields_schema JSON,
+      fields_schema JSONB,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-      INDEX idx_user_id (user_id)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
   `;
 
   const createInvitesTable = `
     CREATE TABLE IF NOT EXISTS invites (
-      id INT AUTO_INCREMENT PRIMARY KEY,
-      event_id INT NOT NULL,
+      id SERIAL PRIMARY KEY,
+      event_id INTEGER NOT NULL REFERENCES events(id) ON DELETE CASCADE,
       token VARCHAR(64) NOT NULL UNIQUE,
       customer_name VARCHAR(255) NOT NULL,
       customer_phone VARCHAR(50),
       customer_email VARCHAR(255),
+      event_type VARCHAR(255),
+      event_location VARCHAR(500),
       notes TEXT,
       price DECIMAL(10, 2),
       event_date DATE,
-      status ENUM('CREATED', 'SENT', 'VIEWED', 'SIGNED', 'RETURNED') DEFAULT 'CREATED',
+      status VARCHAR(20) DEFAULT 'CREATED',
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-      FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE,
-      INDEX idx_event_id (event_id),
-      INDEX idx_token (token),
-      INDEX idx_status (status)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
   `;
 
   const createSubmissionsTable = `
     CREATE TABLE IF NOT EXISTS invite_submissions (
-      id INT AUTO_INCREMENT PRIMARY KEY,
-      invite_id INT NOT NULL UNIQUE,
-      payload JSON NOT NULL,
-      signature_png LONGTEXT,
+      id SERIAL PRIMARY KEY,
+      invite_id INTEGER NOT NULL UNIQUE REFERENCES invites(id) ON DELETE CASCADE,
+      payload JSONB NOT NULL,
+      signature_png TEXT,
       signed_pdf_path VARCHAR(500),
       submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (invite_id) REFERENCES invites(id) ON DELETE CASCADE,
-      INDEX idx_invite_id (invite_id)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
   `;
 
-  await connection.execute(createUsersTable);
-  await connection.execute(createEventsTable);
-  await connection.execute(createInvitesTable);
-  await connection.execute(createSubmissionsTable);
+  // Create indexes
+  const createIndexes = `
+    CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+    CREATE INDEX IF NOT EXISTS idx_events_user_id ON events(user_id);
+    CREATE INDEX IF NOT EXISTS idx_invites_event_id ON invites(event_id);
+    CREATE INDEX IF NOT EXISTS idx_invites_token ON invites(token);
+    CREATE INDEX IF NOT EXISTS idx_invites_status ON invites(status);
+    CREATE INDEX IF NOT EXISTS idx_submissions_invite_id ON invite_submissions(invite_id);
+  `;
 
-  // Add event_date column to invites if it doesn't exist
-  try {
-    await connection.execute(`
-      ALTER TABLE invites ADD COLUMN event_date DATE AFTER price
-    `);
-    console.log('Added event_date column to invites table');
-  } catch (e: any) {
-    // Column might already exist, ignore
-  }
-
-  // Add business_website column to users if it doesn't exist
-  try {
-    await connection.execute(`
-      ALTER TABLE users ADD COLUMN business_website VARCHAR(255) AFTER business_logo
-    `);
-    console.log('Added business_website column to users table');
-  } catch (e: any) {
-    // Column might already exist, ignore
-  }
+  await client.query(createUsersTable);
+  await client.query(createEventsTable);
+  await client.query(createInvitesTable);
+  await client.query(createSubmissionsTable);
+  await client.query(createIndexes);
 
   console.log('Database migrations completed');
 }

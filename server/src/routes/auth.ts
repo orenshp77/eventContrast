@@ -4,7 +4,6 @@ import jwt from 'jsonwebtoken';
 import pool from '../db/connection';
 import { registerSchema, loginSchema } from '../utils/validation';
 import { authMiddleware, AuthRequest } from '../middleware/auth';
-import { RowDataPacket } from 'mysql2';
 
 const router = Router();
 
@@ -16,13 +15,13 @@ router.post('/register', async (req, res, next) => {
     console.log('Validation passed');
 
     // Check if email exists
-    const [existing] = await pool.execute<RowDataPacket[]>(
-      'SELECT id FROM users WHERE email = ?',
+    const existing = await pool.query(
+      'SELECT id FROM users WHERE email = $1',
       [data.email]
     );
 
-    console.log('Checked existing users:', existing.length);
-    if (existing.length > 0) {
+    console.log('Checked existing users:', existing.rows.length);
+    if (existing.rows.length > 0) {
       return res.status(409).json({ message: 'כתובת המייל כבר רשומה במערכת' });
     }
 
@@ -32,13 +31,13 @@ router.post('/register', async (req, res, next) => {
     console.log('Password hashed');
 
     // Insert user
-    const [result] = await pool.execute(
+    const result = await pool.query(
       `INSERT INTO users (name, email, password_hash, business_name, business_phone)
-       VALUES (?, ?, ?, ?, ?)`,
+       VALUES ($1, $2, $3, $4, $5) RETURNING id`,
       [data.name, data.email, passwordHash, data.businessName || null, data.businessPhone || null]
     );
 
-    const userId = (result as any).insertId;
+    const userId = result.rows[0].id;
     console.log('User inserted with ID:', userId);
 
     // Generate token
@@ -49,12 +48,12 @@ router.post('/register', async (req, res, next) => {
     );
 
     // Get user data
-    const [users] = await pool.execute<RowDataPacket[]>(
-      'SELECT id, name, email, business_name, business_phone, created_at FROM users WHERE id = ?',
+    const users = await pool.query(
+      'SELECT id, name, email, business_name, business_phone, created_at FROM users WHERE id = $1',
       [userId]
     );
 
-    const user = users[0];
+    const user = users.rows[0];
 
     res.status(201).json({
       token,
@@ -79,16 +78,16 @@ router.post('/login', async (req, res, next) => {
     const data = loginSchema.parse(req.body);
 
     // Find user
-    const [users] = await pool.execute<RowDataPacket[]>(
-      'SELECT * FROM users WHERE email = ?',
+    const users = await pool.query(
+      'SELECT * FROM users WHERE email = $1',
       [data.email]
     );
 
-    if (users.length === 0) {
+    if (users.rows.length === 0) {
       return res.status(401).json({ message: 'מייל או סיסמה שגויים' });
     }
 
-    const user = users[0];
+    const user = users.rows[0];
 
     // Check password
     const validPassword = await bcrypt.compare(data.password, user.password_hash);
@@ -122,16 +121,16 @@ router.post('/login', async (req, res, next) => {
 // GET /api/auth/me
 router.get('/me', authMiddleware, async (req: AuthRequest, res, next) => {
   try {
-    const [users] = await pool.execute<RowDataPacket[]>(
-      'SELECT id, name, email, business_name, business_phone, business_logo, created_at FROM users WHERE id = ?',
+    const users = await pool.query(
+      'SELECT id, name, email, business_name, business_phone, business_logo, created_at FROM users WHERE id = $1',
       [req.userId]
     );
 
-    if (users.length === 0) {
+    if (users.rows.length === 0) {
       return res.status(404).json({ message: 'משתמש לא נמצא' });
     }
 
-    const user = users[0];
+    const user = users.rows[0];
 
     res.json({
       id: user.id,
@@ -152,17 +151,17 @@ router.put('/profile', authMiddleware, async (req: AuthRequest, res, next) => {
   try {
     const { name, businessName, businessPhone, businessLogo } = req.body;
 
-    await pool.execute(
-      `UPDATE users SET name = ?, business_name = ?, business_phone = ?, business_logo = ? WHERE id = ?`,
+    await pool.query(
+      `UPDATE users SET name = $1, business_name = $2, business_phone = $3, business_logo = $4 WHERE id = $5`,
       [name, businessName || null, businessPhone || null, businessLogo || null, req.userId]
     );
 
-    const [users] = await pool.execute<RowDataPacket[]>(
-      'SELECT id, name, email, business_name, business_phone, business_logo, created_at FROM users WHERE id = ?',
+    const users = await pool.query(
+      'SELECT id, name, email, business_name, business_phone, business_logo, created_at FROM users WHERE id = $1',
       [req.userId]
     );
 
-    const user = users[0];
+    const user = users.rows[0];
 
     res.json({
       id: user.id,

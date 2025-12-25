@@ -3,7 +3,6 @@ import pool from '../db/connection';
 import { submitInviteSchema } from '../utils/validation';
 import { generatePdf } from '../utils/pdf';
 import { sendEmail } from '../utils/email';
-import { RowDataPacket } from 'mysql2';
 
 const router = Router();
 
@@ -12,34 +11,34 @@ router.get('/invite/:token', async (req, res, next) => {
   try {
     const { token } = req.params;
 
-    const [invites] = await pool.execute<RowDataPacket[]>(
+    const invites = await pool.query(
       `SELECT i.*, e.*, u.business_name, u.business_phone, u.business_logo,
               i.event_date as invite_event_date, i.price as invite_price,
               e.event_date as event_event_date, e.price as event_price
        FROM invites i
        JOIN events e ON e.id = i.event_id
        JOIN users u ON u.id = e.user_id
-       WHERE i.token = ?`,
+       WHERE i.token = $1`,
       [token]
     );
 
-    if (invites.length === 0) {
+    if (invites.rows.length === 0) {
       return res.status(404).json({ message: 'הזמנה לא נמצאה' });
     }
 
-    const data = invites[0];
+    const data = invites.rows[0];
 
     // Update status to VIEWED if it's new
     if (data.status === 'CREATED' || data.status === 'SENT') {
-      await pool.execute(
-        "UPDATE invites SET status = 'VIEWED' WHERE token = ?",
+      await pool.query(
+        "UPDATE invites SET status = 'VIEWED' WHERE token = $1",
         [token]
       );
     }
 
     // Check if already submitted
-    const [submissions] = await pool.execute<RowDataPacket[]>(
-      'SELECT id FROM invite_submissions WHERE invite_id = ?',
+    const submissions = await pool.query(
+      'SELECT id FROM invite_submissions WHERE invite_id = $1',
       [data.id]
     );
 
@@ -52,7 +51,7 @@ router.get('/invite/:token', async (req, res, next) => {
         price: data.invite_price || data.event_price,
         defaultText: data.default_text,
         themeColor: data.theme_color,
-        fieldsSchema: data.fields_schema ? (typeof data.fields_schema === 'string' ? JSON.parse(data.fields_schema) : data.fields_schema) : [],
+        fieldsSchema: data.fields_schema || [],
         businessName: data.business_name,
         businessPhone: data.business_phone,
         businessLogo: data.business_logo,
@@ -64,9 +63,9 @@ router.get('/invite/:token', async (req, res, next) => {
         eventType: data.event_type,
         eventLocation: data.event_location,
         notes: data.notes,
-        status: submissions.length > 0 ? 'SIGNED' : data.status,
+        status: submissions.rows.length > 0 ? 'SIGNED' : data.status,
       },
-      alreadySubmitted: submissions.length > 0,
+      alreadySubmitted: submissions.rows.length > 0,
     });
   } catch (error) {
     next(error);
@@ -80,7 +79,7 @@ router.post('/invite/:token/submit', async (req, res, next) => {
     const data = submitInviteSchema.parse(req.body);
 
     // Get invite
-    const [invites] = await pool.execute<RowDataPacket[]>(
+    const invites = await pool.query(
       `SELECT i.id as invite_id, i.token, i.customer_name, i.customer_email, i.customer_phone, i.status,
               i.event_date as invite_event_date, i.price as invite_price,
               i.event_type, i.event_location,
@@ -88,15 +87,15 @@ router.post('/invite/:token/submit', async (req, res, next) => {
        FROM invites i
        JOIN events e ON e.id = i.event_id
        JOIN users u ON u.id = e.user_id
-       WHERE i.token = ?`,
+       WHERE i.token = $1`,
       [token]
     );
 
-    if (invites.length === 0) {
+    if (invites.rows.length === 0) {
       return res.status(404).json({ message: 'הזמנה לא נמצאה' });
     }
 
-    const invite = invites[0];
+    const invite = invites.rows[0];
 
     // Generate PDF
     let pdfPath = null;
@@ -130,14 +129,14 @@ router.post('/invite/:token/submit', async (req, res, next) => {
       // Continue without PDF
     }
 
-    // Save submission (update if already exists)
-    await pool.execute(
+    // Save submission (upsert for PostgreSQL)
+    await pool.query(
       `INSERT INTO invite_submissions (invite_id, payload, signature_png, signed_pdf_path)
-       VALUES (?, ?, ?, ?)
-       ON DUPLICATE KEY UPDATE
-         payload = VALUES(payload),
-         signature_png = VALUES(signature_png),
-         signed_pdf_path = VALUES(signed_pdf_path),
+       VALUES ($1, $2, $3, $4)
+       ON CONFLICT (invite_id) DO UPDATE SET
+         payload = EXCLUDED.payload,
+         signature_png = EXCLUDED.signature_png,
+         signed_pdf_path = EXCLUDED.signed_pdf_path,
          submitted_at = CURRENT_TIMESTAMP`,
       [
         invite.invite_id,
@@ -148,8 +147,8 @@ router.post('/invite/:token/submit', async (req, res, next) => {
     );
 
     // Update invite status
-    await pool.execute(
-      "UPDATE invites SET status = 'SIGNED' WHERE id = ?",
+    await pool.query(
+      "UPDATE invites SET status = 'SIGNED' WHERE id = $1",
       [invite.invite_id]
     );
 
@@ -182,21 +181,21 @@ router.post('/invite/:token/send-email', async (req, res, next) => {
     }
 
     // Get invite and submission
-    const [invites] = await pool.execute<RowDataPacket[]>(
+    const invites = await pool.query(
       `SELECT i.*, e.title, s.signed_pdf_path, u.email as user_email
        FROM invites i
        JOIN events e ON e.id = i.event_id
        JOIN users u ON u.id = e.user_id
        LEFT JOIN invite_submissions s ON s.invite_id = i.id
-       WHERE i.token = ?`,
+       WHERE i.token = $1`,
       [token]
     );
 
-    if (invites.length === 0) {
+    if (invites.rows.length === 0) {
       return res.status(404).json({ message: 'הזמנה לא נמצאה' });
     }
 
-    const invite = invites[0];
+    const invite = invites.rows[0];
 
     if (!invite.signed_pdf_path) {
       return res.status(400).json({ message: 'לא נמצא מסמך חתום' });
@@ -226,8 +225,8 @@ router.post('/invite/:token/send-email', async (req, res, next) => {
     });
 
     // Update status to RETURNED
-    await pool.execute(
-      "UPDATE invites SET status = 'RETURNED' WHERE id = ?",
+    await pool.query(
+      "UPDATE invites SET status = 'RETURNED' WHERE id = $1",
       [invite.id]
     );
 
