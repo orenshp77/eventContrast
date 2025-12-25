@@ -1,4 +1,4 @@
-import puppeteer from 'puppeteer';
+import PDFDocument from 'pdfkit';
 import fs from 'fs';
 import path from 'path';
 import { generateFileName } from './token';
@@ -36,17 +36,6 @@ function formatPrice(price: number): string {
   return `${price.toLocaleString('he-IL')} ש"ח`;
 }
 
-// Escape HTML special characters
-function escapeHtml(text: string): string {
-  if (!text) return '';
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
-}
-
 // Field labels mapping
 const fieldLabels: Record<string, string> = {
   name: 'שם המזמין',
@@ -63,6 +52,12 @@ const fieldLabels: Record<string, string> = {
   eventLocation: 'מיקום/כתובת הארוע',
 };
 
+// Reverse Hebrew text for RTL support in PDFKit
+function reverseHebrew(text: string): string {
+  if (!text) return '';
+  return text.split('').reverse().join('');
+}
+
 export async function generatePdf(data: PdfData): Promise<string> {
   // Ensure uploads directory exists
   const uploadsDir = path.join(__dirname, '../../../uploads');
@@ -73,280 +68,237 @@ export async function generatePdf(data: PdfData): Promise<string> {
   const fileName = generateFileName('signed', 'pdf');
   const filePath = path.join(uploadsDir, fileName);
 
-  // Build customer details rows
-  const customerPhone = data.customer.contactPhone || data.customer.phone || '';
+  return new Promise((resolve, reject) => {
+    try {
+      // Create PDF document
+      const doc = new PDFDocument({
+        size: 'A4',
+        margin: 40,
+        info: {
+          Title: data.event.title || 'Signed Document',
+          Author: data.event.businessName || 'Event System',
+        }
+      });
 
-  // Known fields to exclude from additional fields
-  const knownFields = ['name', 'contactPhone', 'phone', 'date', 'eventType', 'eventLocation'];
-  const additionalFields = Object.entries(data.customer)
-    .filter(([key, value]) => !knownFields.includes(key) && value);
+      // Pipe to file
+      const writeStream = fs.createWriteStream(filePath);
+      doc.pipe(writeStream);
 
-  // Build additional fields HTML
-  let additionalFieldsHtml = '';
-  for (let i = 0; i < additionalFields.length; i += 2) {
-    const [key1, value1] = additionalFields[i];
-    const label1 = fieldLabels[key1] || key1;
+      // Use built-in font that supports basic characters
+      const fontPath = path.join(__dirname, '../fonts/Rubik-Regular.ttf');
+      const fontBoldPath = path.join(__dirname, '../fonts/Rubik-Bold.ttf');
 
-    let row = `
-      <tr>
-        <td class="label">${escapeHtml(label1)}:</td>
-        <td class="value">${escapeHtml(value1)}</td>`;
+      // Check if Hebrew fonts exist, otherwise use Helvetica
+      const hasHebrewFont = fs.existsSync(fontPath);
 
-    if (i + 1 < additionalFields.length) {
-      const [key2, value2] = additionalFields[i + 1];
-      const label2 = fieldLabels[key2] || key2;
-      row += `
-        <td class="label">${escapeHtml(label2)}:</td>
-        <td class="value">${escapeHtml(value2)}</td>`;
-    } else {
-      row += `<td></td><td></td>`;
+      if (hasHebrewFont) {
+        doc.registerFont('Hebrew', fontPath);
+        doc.registerFont('HebrewBold', fontBoldPath);
+      }
+
+      const useFont = hasHebrewFont ? 'Hebrew' : 'Helvetica';
+      const useBoldFont = hasHebrewFont ? 'HebrewBold' : 'Helvetica-Bold';
+
+      // Header
+      doc.font(useBoldFont)
+         .fontSize(24)
+         .text(data.event.businessName || '', { align: 'right' });
+
+      doc.font(useFont)
+         .fontSize(14)
+         .fillColor('#666666')
+         .text(data.event.title || '', { align: 'right' });
+
+      doc.moveDown(0.5);
+
+      // Divider
+      doc.strokeColor('#dddddd')
+         .lineWidth(2)
+         .moveTo(40, doc.y)
+         .lineTo(555, doc.y)
+         .stroke();
+
+      doc.moveDown(1);
+
+      // Customer details
+      const customerPhone = data.customer.contactPhone || data.customer.phone || '';
+
+      doc.fillColor('#333333')
+         .font(useBoldFont)
+         .fontSize(11);
+
+      const startY = doc.y;
+      const leftCol = 300;
+      const rightCol = 40;
+
+      // Right column
+      doc.text('תאריך האירוע:', rightCol, startY, { continued: true, align: 'right', width: 100 })
+         .font(useFont)
+         .text(' ' + (data.event.eventDate ? formatDateHebrew(data.event.eventDate) : '-'), { align: 'right' });
+
+      doc.font(useBoldFont)
+         .text('נייד:', rightCol, startY + 20, { continued: true, align: 'right', width: 100 })
+         .font(useFont)
+         .text(' ' + (customerPhone || '-'), { align: 'right' });
+
+      doc.font(useBoldFont)
+         .text('מיקום:', rightCol, startY + 40, { continued: true, align: 'right', width: 100 })
+         .font(useFont)
+         .text(' ' + (data.customer.eventLocation || '-'), { align: 'right' });
+
+      // Left column
+      doc.font(useBoldFont)
+         .text('המזמינים:', leftCol, startY, { continued: true, align: 'right', width: 100 })
+         .font(useFont)
+         .text(' ' + (data.customer.name || '-'), { align: 'right' });
+
+      doc.font(useBoldFont)
+         .text('סוג האירוע:', leftCol, startY + 20, { continued: true, align: 'right', width: 100 })
+         .font(useFont)
+         .text(' ' + (data.customer.eventType || '-'), { align: 'right' });
+
+      doc.font(useBoldFont)
+         .text('מחיר:', leftCol, startY + 40, { continued: true, align: 'right', width: 100 })
+         .font(useFont)
+         .text(' ' + (data.event.price ? formatPrice(data.event.price) : '-'), { align: 'right' });
+
+      doc.y = startY + 80;
+
+      // Additional fields
+      const knownFields = ['name', 'contactPhone', 'phone', 'date', 'eventType', 'eventLocation'];
+      const additionalFields = Object.entries(data.customer)
+        .filter(([key, value]) => !knownFields.includes(key) && value);
+
+      if (additionalFields.length > 0) {
+        doc.moveDown(0.5);
+        for (const [key, value] of additionalFields) {
+          const label = fieldLabels[key] || key;
+          doc.font(useBoldFont)
+             .fontSize(10)
+             .text(label + ':', { continued: true, align: 'right' })
+             .font(useFont)
+             .text(' ' + value, { align: 'right' });
+        }
+      }
+
+      // Divider
+      doc.moveDown(1);
+      doc.strokeColor('#dddddd')
+         .lineWidth(1)
+         .moveTo(40, doc.y)
+         .lineTo(555, doc.y)
+         .stroke();
+
+      doc.moveDown(1);
+
+      // Terms section
+      if (data.event.defaultText) {
+        doc.font(useBoldFont)
+           .fontSize(14)
+           .fillColor('#333333')
+           .text('תנאים כלליים', { align: 'right' });
+
+        doc.moveDown(0.5);
+
+        // Terms box
+        const termsStartY = doc.y;
+        const lines = data.event.defaultText.split('\n');
+
+        doc.font(useFont)
+           .fontSize(9)
+           .fillColor('#333333');
+
+        for (const line of lines) {
+          if (line.trim()) {
+            doc.text(line.trim(), 50, doc.y, {
+              align: 'right',
+              width: 495
+            });
+          } else {
+            doc.moveDown(0.3);
+          }
+        }
+
+        // Draw box around terms
+        const termsEndY = doc.y + 10;
+        doc.strokeColor('#cccccc')
+           .lineWidth(1)
+           .roundedRect(45, termsStartY - 10, 505, termsEndY - termsStartY + 10, 5)
+           .stroke();
+
+        doc.y = termsEndY + 20;
+      }
+
+      // Signature section
+      doc.moveDown(2);
+
+      const sigY = doc.y;
+      const boxWidth = 200;
+      const boxHeight = 100;
+
+      // Customer name box
+      doc.strokeColor('#dddddd')
+         .lineWidth(1)
+         .roundedRect(320, sigY, boxWidth, boxHeight, 8)
+         .stroke();
+
+      doc.font(useBoldFont)
+         .fontSize(11)
+         .fillColor('#333333')
+         .text('שם המזמין', 320, sigY + 10, { width: boxWidth, align: 'center' });
+
+      doc.font(useFont)
+         .fontSize(14)
+         .text(data.customer.name || '', 320, sigY + 40, { width: boxWidth, align: 'center' });
+
+      // Signature box
+      doc.strokeColor('#dddddd')
+         .roundedRect(80, sigY, boxWidth, boxHeight, 8)
+         .stroke();
+
+      doc.font(useBoldFont)
+         .fontSize(11)
+         .text('חתימת המזמין', 80, sigY + 10, { width: boxWidth, align: 'center' });
+
+      // Add signature image if exists
+      if (data.signature && data.signature.startsWith('data:image')) {
+        try {
+          const base64Data = data.signature.replace(/^data:image\/\w+;base64,/, '');
+          const sigBuffer = Buffer.from(base64Data, 'base64');
+          doc.image(sigBuffer, 110, sigY + 35, { width: 140, height: 55 });
+        } catch (err) {
+          console.error('Failed to add signature image:', err);
+        }
+      }
+
+      // Signature date
+      doc.moveDown(6);
+      doc.font(useFont)
+         .fontSize(10)
+         .fillColor('#666666')
+         .text('נחתם ביום ' + data.submittedAt.toLocaleDateString('he-IL'), { align: 'center' });
+
+      // Footer
+      const footerText = [data.event.businessWebsite, data.event.businessPhone].filter(Boolean).join('  |  ');
+      if (footerText) {
+        doc.fontSize(9)
+           .fillColor('#666666')
+           .text(footerText, 40, 780, { align: 'center', width: 515 });
+      }
+
+      // Finalize
+      doc.end();
+
+      writeStream.on('finish', () => {
+        resolve(fileName);
+      });
+
+      writeStream.on('error', (err) => {
+        reject(err);
+      });
+
+    } catch (error) {
+      reject(error);
     }
-
-    row += `</tr>`;
-    additionalFieldsHtml += row;
-  }
-
-  // Build terms HTML
-  let termsHtml = '';
-  if (data.event.defaultText) {
-    const lines = data.event.defaultText.split('\n');
-    termsHtml = lines.map(line =>
-      line.trim() ? `<p>${escapeHtml(line)}</p>` : '<br>'
-    ).join('');
-  }
-
-  // Create HTML template
-  const html = `
-<!DOCTYPE html>
-<html dir="rtl" lang="he">
-<head>
-  <meta charset="UTF-8">
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@400;700&display=swap');
-
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
-    body {
-      font-family: 'Heebo', Arial, sans-serif;
-      font-size: 12px;
-      line-height: 1.5;
-      color: #333;
-      padding: 40px;
-      direction: rtl;
-    }
-
-    .header {
-      text-align: right;
-      margin-bottom: 20px;
-      padding-bottom: 15px;
-      border-bottom: 2px solid #ddd;
-    }
-
-    .business-name {
-      font-size: 28px;
-      font-weight: 700;
-      color: #000;
-      margin-bottom: 5px;
-    }
-
-    .event-title {
-      font-size: 16px;
-      color: #666;
-    }
-
-    .details-table {
-      width: 100%;
-      margin: 20px 0;
-      border-collapse: collapse;
-    }
-
-    .details-table td {
-      padding: 8px 5px;
-      vertical-align: top;
-    }
-
-    .details-table .label {
-      font-weight: 700;
-      color: #333;
-      width: 15%;
-      text-align: right;
-    }
-
-    .details-table .value {
-      color: #000;
-      width: 35%;
-      text-align: right;
-    }
-
-    .divider {
-      border-top: 1px solid #ddd;
-      margin: 20px 0;
-    }
-
-    .section-title {
-      font-size: 16px;
-      font-weight: 700;
-      color: #333;
-      margin-bottom: 10px;
-      text-align: right;
-    }
-
-    .terms-box {
-      border: 1px solid #ccc;
-      border-radius: 5px;
-      padding: 15px;
-      background: #fafafa;
-      margin-bottom: 30px;
-    }
-
-    .terms-box p {
-      margin: 5px 0;
-      font-size: 11px;
-      color: #333;
-      line-height: 1.6;
-      text-align: right;
-    }
-
-    .signature-section {
-      margin-top: 30px;
-      display: flex;
-      justify-content: space-between;
-      align-items: stretch;
-      gap: 20px;
-    }
-
-    .signature-box {
-      flex: 1;
-      border: 1px solid #ddd;
-      border-radius: 8px;
-      padding: 15px;
-      text-align: center;
-    }
-
-    .signature-label {
-      font-size: 13px;
-      font-weight: 700;
-      color: #333;
-      margin-bottom: 10px;
-    }
-
-    .signature-name {
-      font-size: 16px;
-      color: #000;
-      font-weight: 500;
-    }
-
-    .signature-image {
-      max-width: 200px;
-      max-height: 80px;
-      margin: 0 auto;
-    }
-
-    .signature-date {
-      font-size: 11px;
-      color: #666;
-      margin-top: 20px;
-      text-align: center;
-    }
-
-    .footer {
-      position: fixed;
-      bottom: 30px;
-      left: 40px;
-      right: 40px;
-      text-align: center;
-      font-size: 11px;
-      color: #666;
-      border-top: 1px solid #eee;
-      padding-top: 10px;
-    }
-  </style>
-</head>
-<body>
-  <div class="header">
-    <div class="business-name">${escapeHtml(data.event.businessName || '')}</div>
-    <div class="event-title">${escapeHtml(data.event.title || '')}</div>
-  </div>
-
-  <table class="details-table">
-    <tr>
-      <td class="label">תאריך האירוע:</td>
-      <td class="value">${data.event.eventDate ? formatDateHebrew(data.event.eventDate) : '-'}</td>
-      <td class="label">המזמינים:</td>
-      <td class="value">${escapeHtml(data.customer.name || '-')}</td>
-    </tr>
-    <tr>
-      <td class="label">נייד:</td>
-      <td class="value">${escapeHtml(customerPhone || '-')}</td>
-      <td class="label">סוג האירוע:</td>
-      <td class="value">${escapeHtml(data.customer.eventType || '-')}</td>
-    </tr>
-    <tr>
-      <td class="label">מיקום/כתובת הארוע:</td>
-      <td class="value">${escapeHtml(data.customer.eventLocation || '-')}</td>
-      <td class="label">מחיר:</td>
-      <td class="value">${data.event.price ? formatPrice(data.event.price) : '-'}</td>
-    </tr>
-    ${additionalFieldsHtml}
-  </table>
-
-  <div class="divider"></div>
-
-  ${data.event.defaultText ? `
-    <div class="section-title">תנאים כלליים</div>
-    <div class="terms-box">
-      ${termsHtml}
-    </div>
-  ` : ''}
-
-  <div class="signature-section">
-    <div class="signature-box">
-      <div class="signature-label">שם המזמין</div>
-      <div class="signature-name">${escapeHtml(data.customer.name || '')}</div>
-    </div>
-    <div class="signature-box">
-      <div class="signature-label">חתימת המזמין</div>
-      ${data.signature ? `<img class="signature-image" src="${data.signature}" />` : ''}
-    </div>
-  </div>
-
-  <div class="signature-date">נחתם ביום ${data.submittedAt.toLocaleDateString('he-IL')}</div>
-
-  <div class="footer">
-    ${[data.event.businessWebsite, data.event.businessPhone].filter(Boolean).join('  |  ')}
-  </div>
-</body>
-</html>
-`;
-
-  // Launch browser and generate PDF
-  const browser = await puppeteer.launch({
-    headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox']
   });
-
-  try {
-    const page = await browser.newPage();
-    await page.setContent(html, { waitUntil: 'networkidle0' });
-
-    await page.pdf({
-      path: filePath,
-      format: 'A4',
-      margin: {
-        top: '20px',
-        right: '20px',
-        bottom: '60px',
-        left: '20px'
-      },
-      printBackground: true
-    });
-  } finally {
-    await browser.close();
-  }
-
-  return fileName;
 }
