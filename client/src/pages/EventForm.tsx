@@ -264,7 +264,7 @@ export default function EventForm() {
   }
 
   return (
-    <Layout title={isEdit ? 'עריכת אירוע' : 'חזרה לעמוד הראשי'} showBack>
+    <Layout title={isEdit ? 'עריכת אירוע' : `ההסכמים שלי מסוג: ${formData.title || ''}`} showBack>
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Basic Info Card */}
         <div className="card border-2 border-green-100">
