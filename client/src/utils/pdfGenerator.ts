@@ -81,6 +81,24 @@ export async function generatePdfFromHtml(data: PdfData): Promise<Blob> {
   const themeColor = data.event.themeColor || '#7C3AED';
   const signDate = data.submittedAt.toLocaleDateString('he-IL');
 
+  // Build details array for 2-column layout
+  const details: { label: string; value: string }[] = [];
+  if (data.customer.name) details.push({ label: 'שם הלקוח', value: data.customer.name });
+  if (data.customer.phone) details.push({ label: 'טלפון', value: data.customer.phone });
+  if (data.customer.email) details.push({ label: 'אימייל', value: data.customer.email });
+  if (data.customer.eventType) details.push({ label: 'סוג האירוע', value: data.customer.eventType });
+  if (data.customer.eventLocation) details.push({ label: 'מיקום האירוע', value: data.customer.eventLocation });
+  if (data.event.eventDate) details.push({ label: 'תאריך האירוע', value: new Date(data.event.eventDate).toLocaleDateString('he-IL') });
+  if (data.event.price) details.push({ label: 'מחיר', value: `₪${data.event.price.toLocaleString()}` });
+
+  // Create 2-column grid for details
+  const detailsHtml = details.map(d => `
+    <div style="padding: 6px 10px; border-bottom: 1px solid #eee;">
+      <span style="color: #666; font-size: 11px;">${d.label}</span><br>
+      <span style="color: #333; font-weight: 600; font-size: 13px;">${d.value}</span>
+    </div>
+  `).join('');
+
   // Create hidden container
   const container = document.createElement('div');
   container.style.cssText = `
@@ -90,7 +108,7 @@ export async function generatePdfFromHtml(data: PdfData): Promise<Blob> {
     z-index: -1;
   `;
 
-  // Build the PDF page HTML
+  // Build the PDF page HTML - compact layout
   container.innerHTML = `
     <div id="pdf-page" style="
       width: ${A4_WIDTH_PX}px;
@@ -106,89 +124,56 @@ export async function generatePdfFromHtml(data: PdfData): Promise<Blob> {
       <div style="
         background: ${themeColor};
         color: white;
-        padding: 25px 30px;
+        padding: 20px 30px;
         text-align: center;
       ">
-        <h1 style="margin: 0; font-size: 28px; font-weight: bold;">
+        <h1 style="margin: 0; font-size: 24px; font-weight: bold;">
           ${data.event.businessName || 'הסכם דיגיטלי'}
         </h1>
-        <p style="margin: 8px 0 0 0; font-size: 16px; opacity: 0.9;">
+        <p style="margin: 5px 0 0 0; font-size: 14px; opacity: 0.9;">
           ${data.event.title}
         </p>
       </div>
 
       <!-- Content -->
-      <div style="flex: 1; padding: 25px 30px;">
-        <!-- Customer Details -->
+      <div style="flex: 1; padding: 20px 30px;">
+        <!-- Customer Details - 2 columns -->
         <div style="
           background: #f8f9fa;
-          border-radius: 12px;
-          padding: 20px;
-          margin-bottom: 20px;
+          border-radius: 8px;
+          padding: 15px;
+          margin-bottom: 15px;
         ">
           <h2 style="
-            margin: 0 0 15px 0;
-            font-size: 18px;
+            margin: 0 0 10px 0;
+            font-size: 16px;
             color: #333;
             border-bottom: 2px solid ${themeColor};
-            padding-bottom: 10px;
+            padding-bottom: 8px;
           ">פרטי ההזמנה</h2>
 
-          <div style="display: grid; gap: 8px;">
-            <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #eee;">
-              <span style="color: #666; font-weight: 500;">שם הלקוח:</span>
-              <span style="color: #333; font-weight: 600;">${data.customer.name}</span>
-            </div>
-            ${data.customer.phone ? `
-            <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #eee;">
-              <span style="color: #666; font-weight: 500;">טלפון:</span>
-              <span style="color: #333; font-weight: 600;">${data.customer.phone}</span>
-            </div>` : ''}
-            ${data.customer.email ? `
-            <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #eee;">
-              <span style="color: #666; font-weight: 500;">אימייל:</span>
-              <span style="color: #333; font-weight: 600;">${data.customer.email}</span>
-            </div>` : ''}
-            ${data.customer.eventType ? `
-            <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #eee;">
-              <span style="color: #666; font-weight: 500;">סוג האירוע:</span>
-              <span style="color: #333; font-weight: 600;">${data.customer.eventType}</span>
-            </div>` : ''}
-            ${data.customer.eventLocation ? `
-            <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #eee;">
-              <span style="color: #666; font-weight: 500;">מיקום האירוע:</span>
-              <span style="color: #333; font-weight: 600;">${data.customer.eventLocation}</span>
-            </div>` : ''}
-            ${data.event.eventDate ? `
-            <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #eee;">
-              <span style="color: #666; font-weight: 500;">תאריך האירוע:</span>
-              <span style="color: #333; font-weight: 600;">${new Date(data.event.eventDate).toLocaleDateString('he-IL')}</span>
-            </div>` : ''}
-            ${data.event.price ? `
-            <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #eee;">
-              <span style="color: #666; font-weight: 500;">מחיר:</span>
-              <span style="color: #333; font-weight: 600;">₪${data.event.price.toLocaleString()}</span>
-            </div>` : ''}
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px;">
+            ${detailsHtml}
           </div>
         </div>
 
         <!-- Terms -->
         ${data.event.defaultText ? `
-        <div style="margin-bottom: 20px;">
+        <div style="margin-bottom: 15px;">
           <h2 style="
-            margin: 0 0 15px 0;
-            font-size: 18px;
+            margin: 0 0 10px 0;
+            font-size: 16px;
             color: #333;
             border-bottom: 2px solid ${themeColor};
-            padding-bottom: 10px;
+            padding-bottom: 8px;
           ">תנאים והתחייבויות</h2>
           <div style="
             background: #fafafa;
             border: 1px solid #eee;
             border-radius: 8px;
-            padding: 15px;
-            font-size: 12px;
-            line-height: 1.6;
+            padding: 12px;
+            font-size: 11px;
+            line-height: 1.5;
             white-space: pre-wrap;
             color: #555;
           ">${data.event.defaultText}</div>
@@ -197,34 +182,34 @@ export async function generatePdfFromHtml(data: PdfData): Promise<Blob> {
         <!-- Signature Section -->
         <div style="
           display: flex;
-          gap: 20px;
-          margin-top: 25px;
-          padding-top: 20px;
+          gap: 15px;
+          margin-top: 20px;
+          padding-top: 15px;
           border-top: 2px solid #eee;
         ">
           <!-- Customer Name Box -->
           <div style="
             flex: 1;
             border: 2px solid ${themeColor};
-            border-radius: 12px;
-            padding: 15px;
+            border-radius: 10px;
+            padding: 12px;
             text-align: center;
           ">
             <div style="
               color: ${themeColor};
               font-weight: bold;
-              font-size: 14px;
-              margin-bottom: 10px;
+              font-size: 12px;
+              margin-bottom: 8px;
             ">שם הלקוח</div>
             <div style="
-              font-size: 18px;
+              font-size: 16px;
               font-weight: 600;
               color: #333;
             ">${data.customer.name}</div>
             <div style="
-              font-size: 12px;
+              font-size: 10px;
               color: #888;
-              margin-top: 8px;
+              margin-top: 6px;
             ">נחתם בתאריך: ${signDate}</div>
           </div>
 
@@ -232,23 +217,23 @@ export async function generatePdfFromHtml(data: PdfData): Promise<Blob> {
           <div style="
             flex: 1;
             border: 2px solid ${themeColor};
-            border-radius: 12px;
-            padding: 15px;
+            border-radius: 10px;
+            padding: 12px;
             text-align: center;
           ">
             <div style="
               color: ${themeColor};
               font-weight: bold;
-              font-size: 14px;
-              margin-bottom: 10px;
+              font-size: 12px;
+              margin-bottom: 8px;
             ">חתימה</div>
             <div style="
-              min-height: 60px;
+              min-height: 50px;
               display: flex;
               align-items: center;
               justify-content: center;
             ">
-              ${data.signature ? `<img src="${data.signature}" style="max-width: 150px; max-height: 60px;" />` : '<span style="color: #999;">ללא חתימה</span>'}
+              ${data.signature ? `<img src="${data.signature}" style="max-width: 120px; max-height: 50px;" />` : '<span style="color: #999;">ללא חתימה</span>'}
             </div>
           </div>
         </div>
@@ -258,9 +243,9 @@ export async function generatePdfFromHtml(data: PdfData): Promise<Blob> {
       <div style="
         background: ${themeColor};
         color: white;
-        padding: 15px 30px;
+        padding: 12px 30px;
         text-align: center;
-        font-size: 12px;
+        font-size: 11px;
         display: flex;
         justify-content: space-between;
         align-items: center;
