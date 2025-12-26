@@ -94,14 +94,26 @@ const fieldLabels: Record<string, string> = {
 };
 
 export async function generatePdf(data: PdfData): Promise<string> {
+  console.log('=== PDF Generation Started ===');
+
   // Ensure uploads directory exists
   const uploadsDir = path.resolve(process.cwd(), 'uploads');
-  if (!fs.existsSync(uploadsDir)) {
-    fs.mkdirSync(uploadsDir, { recursive: true });
+  console.log('Uploads directory:', uploadsDir);
+
+  try {
+    if (!fs.existsSync(uploadsDir)) {
+      console.log('Creating uploads directory...');
+      fs.mkdirSync(uploadsDir, { recursive: true });
+    }
+    console.log('Uploads directory exists:', fs.existsSync(uploadsDir));
+  } catch (err) {
+    console.error('Error creating uploads directory:', err);
+    throw new Error(`Failed to create uploads directory: ${err}`);
   }
 
   const fileName = generateFileName('signed', 'pdf');
   const filePath = path.join(uploadsDir, fileName);
+  console.log('Output file path:', filePath);
 
   // Find font path - check multiple locations
   // After build: __dirname is dist/utils, fonts are in dist/fonts
@@ -112,19 +124,23 @@ export async function generatePdf(data: PdfData): Promise<string> {
     path.join(process.cwd(), 'src/fonts'),      // dev mode
   ];
 
+  console.log('__dirname:', __dirname);
+  console.log('process.cwd():', process.cwd());
+  console.log('Checking font locations:', fontLocations);
+
   let fontDir = '';
   for (const loc of fontLocations) {
-    if (fs.existsSync(path.join(loc, 'Rubik-Regular.ttf'))) {
+    const fontPath = path.join(loc, 'Rubik-Regular.ttf');
+    const exists = fs.existsSync(fontPath);
+    console.log(`Checking ${fontPath}: ${exists ? 'FOUND' : 'not found'}`);
+    if (exists) {
       fontDir = loc;
       break;
     }
   }
 
   const hasHebrewFont = fontDir !== '';
-  console.log('Font directory:', fontDir || 'NOT FOUND - using Helvetica');
-  console.log('__dirname:', __dirname);
-  console.log('process.cwd():', process.cwd());
-  console.log('Checking font locations:', fontLocations);
+  console.log('Using Hebrew font:', hasHebrewFont, fontDir || 'Helvetica fallback');
 
   return new Promise((resolve, reject) => {
     try {
@@ -377,13 +393,22 @@ export async function generatePdf(data: PdfData): Promise<string> {
       }
 
       // Finalize
+      console.log('Finalizing PDF document...');
       doc.end();
 
       writeStream.on('finish', () => {
+        console.log('=== PDF Generated Successfully ===');
+        console.log('File saved:', filePath);
+        console.log('File exists:', fs.existsSync(filePath));
+        if (fs.existsSync(filePath)) {
+          const stats = fs.statSync(filePath);
+          console.log('File size:', stats.size, 'bytes');
+        }
         resolve(fileName);
       });
 
       writeStream.on('error', (error: Error) => {
+        console.error('WriteStream error:', error);
         reject(error);
       });
 
