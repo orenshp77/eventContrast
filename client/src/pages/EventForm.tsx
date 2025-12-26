@@ -179,6 +179,7 @@ export default function EventForm() {
   });
 
   const [highlightedFieldId, setHighlightedFieldId] = useState<string | null>(null);
+  const [deletingFieldId, setDeletingFieldId] = useState<string | null>(null);
   const fieldsContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -245,10 +246,17 @@ export default function EventForm() {
   };
 
   const removeField = (fieldId: string) => {
-    setFormData({
-      ...formData,
-      fieldsSchema: formData.fieldsSchema.filter(f => f.id !== fieldId)
-    });
+    // Set the deleting field ID to trigger animation
+    setDeletingFieldId(fieldId);
+
+    // Wait for animation to complete, then remove the field
+    setTimeout(() => {
+      setFormData(prev => ({
+        ...prev,
+        fieldsSchema: prev.fieldsSchema.filter(f => f.id !== fieldId)
+      }));
+      setDeletingFieldId(null);
+    }, 500); // Match animation duration
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -408,6 +416,10 @@ export default function EventForm() {
                 className={`p-5 bg-white rounded-2xl shadow-md transition-all duration-500 relative ${
                   highlightedFieldId === field.id
                     ? 'ring-4 ring-lime-400 animate-pulse bg-lime-50'
+                    : ''
+                } ${
+                  deletingFieldId === field.id
+                    ? 'animate-delete-field'
                     : ''
                 }`}
               >
