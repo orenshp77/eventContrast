@@ -227,11 +227,6 @@ export default function EventForm() {
     setFormData({ ...formData, fieldsSchema: [...formData.fieldsSchema, newField] });
   };
 
-  const removeField = (index: number) => {
-    const newFields = formData.fieldsSchema.filter((_, i) => i !== index);
-    setFormData({ ...formData, fieldsSchema: newFields });
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
@@ -424,22 +419,20 @@ export default function EventForm() {
                       </select>
                     </div>
 
-                    <div className="flex items-center gap-3 pt-8">
-                      <label className="flex items-center gap-2 text-base font-medium bg-white px-3 py-2 rounded-lg border border-gray-200">
-                        <input
-                          type="checkbox"
-                          checked={field.required}
-                          onChange={(e) => handleFieldChange(index, { required: e.target.checked })}
-                          className="w-5 h-5 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-                        />
-                        חובה
-                      </label>
+                    <div className="flex flex-col items-start gap-1 pt-2">
+                      <label className="text-sm font-medium text-gray-600">בחירה שתוצג בהסכם</label>
                       <button
                         type="button"
-                        onClick={() => removeField(index)}
-                        className="w-10 h-10 flex items-center justify-center text-red-500 hover:bg-red-100 bg-white rounded-lg transition-colors border border-red-200"
+                        onClick={() => handleFieldChange(index, { required: !field.required })}
+                        className={`relative inline-flex h-7 w-14 items-center rounded-full transition-colors ${
+                          field.required ? 'bg-primary-600' : 'bg-gray-300'
+                        }`}
                       >
-                        🗑️
+                        <span
+                          className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform shadow-md ${
+                            field.required ? 'translate-x-8' : 'translate-x-1'
+                          }`}
+                        />
                       </button>
                     </div>
                   </div>
