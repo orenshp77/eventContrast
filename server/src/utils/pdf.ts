@@ -104,11 +104,12 @@ export async function generatePdf(data: PdfData): Promise<string> {
   const filePath = path.join(uploadsDir, fileName);
 
   // Find font path - check multiple locations
+  // After build: __dirname is dist/utils, fonts are in dist/fonts
   const fontLocations = [
-    path.join(__dirname, '../fonts'),
-    path.join(__dirname, '../../src/fonts'),
-    path.join(process.cwd(), 'src/fonts'),
-    path.join(process.cwd(), 'dist/fonts'),
+    path.join(__dirname, '../fonts'),           // dist/utils -> dist/fonts
+    path.join(__dirname, '../../dist/fonts'),   // fallback
+    path.join(process.cwd(), 'dist/fonts'),     // from project root
+    path.join(process.cwd(), 'src/fonts'),      // dev mode
   ];
 
   let fontDir = '';
