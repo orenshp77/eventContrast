@@ -257,13 +257,13 @@ export default function Events() {
   return (
     <Layout title="סוגי ההסכמים שלי" showBack>
       {/* Header with Add Buttons */}
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-xl font-bold text-gray-900">סוגי ההסכמים שלי</h1>
-        <div className="flex gap-2">
-          <button onClick={handleCreateInvite} className="btn btn-primary">
+      <div className="flex flex-col items-center text-center mb-6">
+        <h1 className="text-2xl font-bold text-gray-900 mb-4">סוגי ההסכמים שלי</h1>
+        <div className="flex gap-2 w-full">
+          <button onClick={handleCreateInvite} className="btn btn-primary flex-1">
             הסכם חדש ללקוח
           </button>
-          <Link to="/events/new" className="btn btn-secondary">
+          <Link to="/events/new" className="btn btn-secondary flex-1">
             יצירת סוג הסכם נוסף
           </Link>
         </div>
@@ -331,24 +331,26 @@ export default function Events() {
               </div>
 
               {/* Action Buttons */}
-              <div className="flex gap-2 mt-4 pt-4 border-t border-gray-100">
-                <Link
-                  to={`/events/${event.id}/invites`}
-                  className="btn btn-primary flex-1"
-                >
-                  ניהול הסכמים ללקוחות
-                </Link>
-                <Link
-                  to={`/events/${event.id}/edit`}
-                  className="btn btn-secondary"
-                >
-                  ערוך
-                </Link>
+              <div className="flex flex-col gap-2 mt-4 pt-4 border-t border-gray-100">
+                <div className="flex gap-2">
+                  <Link
+                    to={`/events/${event.id}/invites`}
+                    className="btn btn-primary flex-1"
+                  >
+                    ניהול הסכמים ללקוחות
+                  </Link>
+                  <Link
+                    to={`/events/${event.id}/edit`}
+                    className="btn btn-secondary flex-1"
+                  >
+                    ערוך
+                  </Link>
+                </div>
                 <button
                   onClick={() => handleDelete(event.id, event.title)}
-                  className="btn btn-danger"
+                  className="btn btn-danger w-full"
                 >
-                  🗑️
+                  מחיקה
                 </button>
               </div>
             </div>

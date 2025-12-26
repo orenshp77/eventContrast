@@ -265,25 +265,27 @@ export default function Dashboard() {
                     <div className="text-xs text-gray-500">הסכמים</div>
                   </div>
                 </Link>
-                <div className="flex gap-2 mt-3 pt-3 border-t border-gray-100">
+                <div className="flex flex-col gap-2 mt-3 pt-3 border-t border-gray-100">
                   <Link
                     to={`/events/${event.id}/invites`}
-                    className="btn btn-primary flex-1 text-sm py-2"
+                    className="btn btn-primary w-full text-sm py-2"
                   >
                     ניהול הסכמי לקוחות
                   </Link>
-                  <Link
-                    to={`/events/${event.id}/edit`}
-                    className="btn btn-secondary text-sm py-2"
-                  >
-                    ערוך
-                  </Link>
-                  <button
-                    onClick={(e) => handleDeleteEvent(e, event.id, event.title)}
-                    className="btn btn-danger text-sm py-2"
-                  >
-                    מחיקה
-                  </button>
+                  <div className="flex gap-2">
+                    <Link
+                      to={`/events/${event.id}/edit`}
+                      className="btn btn-secondary flex-1 text-sm py-2"
+                    >
+                      ערוך
+                    </Link>
+                    <button
+                      onClick={(e) => handleDeleteEvent(e, event.id, event.title)}
+                      className="btn btn-danger flex-1 text-sm py-2"
+                    >
+                      מחיקה
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
