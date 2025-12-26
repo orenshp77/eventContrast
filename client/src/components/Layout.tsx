@@ -19,41 +19,41 @@ export default function Layout({ children, title, showBack }: LayoutProps) {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20 md:pb-0">
+    <div className="min-h-screen pb-24 md:pb-0">
       {/* Top Header */}
-      <header className="bg-white border-b border-gray-100 sticky top-0 z-40">
+      <header className="bg-gray-900/80 backdrop-blur-lg border-b border-gray-700/50 sticky top-0 z-40">
         <div className="max-w-4xl mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
             {showBack && (
               <button
                 onClick={() => navigate(-1)}
-                className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
+                className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-800/50 hover:bg-gray-700/50 transition-colors"
                 aria-label="חזרה"
               >
-                <svg className="w-6 h-6 text-gray-600 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-6 h-6 text-white rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                 </svg>
               </button>
             )}
             {title ? (
-              <h1 className="text-lg font-semibold text-gray-900">{title}</h1>
+              <h1 className="text-xl font-bold text-white">{title}</h1>
             ) : (
               <Link to="/dashboard" className="flex items-center gap-2">
                 <span className="text-2xl">📋</span>
-                <span className="font-bold text-primary-600">הסכם דיגיטלי</span>
+                <span className="font-bold text-lime-400 text-lg">הסכם דיגיטלי</span>
               </Link>
             )}
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             {user && (
               <>
-                <span className="text-sm text-gray-600 hidden md:inline">
+                <span className="text-sm text-gray-300 hidden md:inline font-medium">
                   {user.name}
                 </span>
                 <button
                   onClick={logout}
-                  className="text-sm text-red-600 hover:text-red-700 font-medium px-3 py-2 rounded-lg hover:bg-red-50 transition-colors"
+                  className="text-sm text-red-400 hover:text-red-300 font-bold px-4 py-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 transition-all"
                 >
                   התנתק
                 </button>
@@ -69,29 +69,31 @@ export default function Layout({ children, title, showBack }: LayoutProps) {
       </main>
 
       {/* Bottom Navigation - Mobile */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 md:hidden z-40">
-        <div className="flex justify-around items-center h-16">
+      <nav className="fixed bottom-0 left-0 right-0 bg-gray-900/95 backdrop-blur-lg border-t border-gray-700/50 md:hidden z-40 safe-area-pb">
+        <div className="flex justify-around items-center h-20 px-2">
           {navItems.map((item) => {
             const isActive = location.pathname === item.path || location.pathname.startsWith(item.path + '/');
             return (
               <Link
                 key={item.path}
                 to={item.path}
-                className={`flex flex-col items-center justify-center w-full h-full transition-colors ${
-                  isActive ? 'text-primary-600' : 'text-gray-500'
+                className={`flex flex-col items-center justify-center flex-1 h-full rounded-2xl mx-1 transition-all ${
+                  isActive
+                    ? 'bg-lime-500/20 text-lime-400'
+                    : 'text-gray-400 hover:text-gray-300'
                 }`}
               >
-                <span className="text-xl mb-1">{item.icon}</span>
-                <span className="text-xs font-medium">{item.label}</span>
+                <span className="text-2xl mb-1">{item.icon}</span>
+                <span className="text-xs font-bold">{item.label}</span>
               </Link>
             );
           })}
           <button
             onClick={logout}
-            className="flex flex-col items-center justify-center w-full h-full text-gray-500"
+            className="flex flex-col items-center justify-center flex-1 h-full text-gray-400 hover:text-red-400 rounded-2xl mx-1 transition-all"
           >
-            <span className="text-xl mb-1">🚪</span>
-            <span className="text-xs font-medium">יציאה</span>
+            <span className="text-2xl mb-1">🚪</span>
+            <span className="text-xs font-bold">יציאה</span>
           </button>
         </div>
       </nav>

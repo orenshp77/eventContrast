@@ -291,8 +291,8 @@ export default function EventForm() {
     <Layout title={isEdit ? 'עריכת אירוע' : `ההסכמים שלי מסוג: ${formData.title || ''}`} showBack>
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Basic Info Card */}
-        <div className="card border-2 border-green-100">
-          <h2 className="text-xl font-bold text-gray-900 mb-6">יצירת הסכם קבוע לסוג הארוע הרצוי</h2>
+        <div className="card">
+          <h2 className="text-2xl font-bold text-gray-900 mb-6">יצירת הסכם קבוע לסוג הארוע הרצוי</h2>
 
           <div className="space-y-5">
             <div>
@@ -350,7 +350,7 @@ export default function EventForm() {
         </div>
 
         {/* Default Text Card */}
-        <div className="card border-2 border-blue-100">
+        <div className="card">
           <h2 className="text-xl font-bold text-gray-900 mb-6">תקנון / הערות קבועות</h2>
 
           {/* Template Selection */}
@@ -391,8 +391,8 @@ export default function EventForm() {
         </div>
 
         {/* Fields Schema Card */}
-        <div className="card border-2 border-primary-100">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">שדות שניתן להוסיף לטופס ההסכם</h2>
+        <div className="card">
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">שדות שניתן להוסיף לטופס ההסכם</h2>
           <button
             type="button"
             onClick={addField}
@@ -405,26 +405,26 @@ export default function EventForm() {
             {formData.fieldsSchema.map((field, index) => (
               <div
                 key={field.id}
-                className={`p-5 bg-gradient-to-r from-gray-50 to-primary-50 rounded-xl border shadow-sm transition-all duration-500 relative ${
+                className={`p-5 bg-white rounded-2xl shadow-md transition-all duration-500 relative ${
                   highlightedFieldId === field.id
-                    ? 'border-primary-500 ring-4 ring-primary-300 animate-pulse bg-gradient-to-r from-primary-100 to-purple-100'
-                    : 'border-gray-200'
+                    ? 'ring-4 ring-lime-400 animate-pulse bg-lime-50'
+                    : ''
                 }`}
               >
                 {/* Delete button */}
                 <button
                   type="button"
                   onClick={() => removeField(field.id)}
-                  className="absolute top-2 right-2 w-6 h-6 flex items-center justify-center rounded-full bg-red-100 text-red-600 hover:bg-red-200 hover:text-red-700 transition-colors text-sm font-bold"
+                  className="absolute top-3 right-3 w-8 h-8 flex items-center justify-center rounded-full bg-red-500 text-white hover:bg-red-600 transition-colors text-lg font-bold shadow-md"
                   title="מחק שדה"
                 >
                   ×
                 </button>
 
-                <div className="flex flex-col gap-4 pt-4">
+                <div className="flex flex-col gap-4 pt-6">
                   {/* Field name - full width */}
                   <div>
-                    <label className="input-label text-base font-semibold text-primary-700">שם השדה</label>
+                    <label className="input-label">שם השדה</label>
                     <input
                       type="text"
                       className="input text-base py-3"
@@ -436,7 +436,7 @@ export default function EventForm() {
                   {/* Type and controls row */}
                   <div className="flex items-center gap-4">
                     <div className="flex-1">
-                      <label className="input-label text-base font-semibold text-primary-700">סוג שדה</label>
+                      <label className="input-label">סוג שדה</label>
                       <select
                         className="input text-base py-3"
                         value={field.type}
