@@ -26,7 +26,9 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
 // Static files for uploads
-app.use('/uploads', express.static(path.join(__dirname, '../../uploads')));
+const uploadsPath = path.resolve(process.cwd(), 'uploads');
+console.log('Uploads path:', uploadsPath);
+app.use('/uploads', express.static(uploadsPath));
 
 // Rate limiting for public endpoints
 const publicLimiter = rateLimit({
