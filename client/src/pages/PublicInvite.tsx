@@ -4,6 +4,7 @@ import SignatureCanvas, { SignatureCanvasRef } from '../components/SignatureCanv
 import { publicApi } from '../utils/api';
 import { showToast, showLoading, hideLoading } from '../utils/swal';
 import Swal from 'sweetalert2';
+import { generatePdfFromHtml, openPdfInNewTab, downloadPdf } from '../utils/pdfGenerator';
 
 interface FieldSchema {
   id: string;
@@ -147,41 +148,65 @@ export default function PublicInvite() {
       // Mark as submitted
       setData(prev => prev ? { ...prev, alreadySubmitted: true } : null);
 
-      // Show success popup with options
-      const pdfUrl = response.data.pdfUrl;
-      const pdfError = response.data.pdfError;
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:10001';
-      const fullPdfUrl = pdfUrl ? apiUrl + pdfUrl : null;
+      // Generate PDF on client side
+      showLoading('מייצר PDF...');
+      let pdfBlob: Blob | null = null;
+      try {
+        pdfBlob = await generatePdfFromHtml({
+          event: {
+            title: data!.event.title,
+            description: data!.event.description,
+            location: data!.event.location,
+            eventDate: data!.event.eventDate,
+            price: data!.event.price,
+            defaultText: data!.event.defaultText,
+            themeColor: data!.event.themeColor,
+            businessName: data!.event.businessName,
+            businessPhone: data!.event.businessPhone,
+            businessLogo: data!.event.businessLogo,
+          },
+          customer: {
+            name: data!.invite.customerName,
+            phone: data!.invite.customerPhone,
+            email: data!.invite.customerEmail,
+            eventType: data!.invite.eventType,
+            eventLocation: data!.invite.eventLocation,
+            notes: data!.invite.notes,
+            ...formValues,
+          },
+          signature,
+          submittedAt: new Date(),
+        });
+      } catch (pdfError) {
+        console.error('PDF generation error:', pdfError);
+      }
+      hideLoading();
+
       const businessPhone = data?.event.businessPhone;
       const ownerEmail = response.data.ownerEmail;
-      const shareUrl = fullPdfUrl || window.location.href;
+      const shareUrl = window.location.href;
       const whatsappMessage = encodeURIComponent(
-        'שלום,\nמצורף טופס חתום עבור: ' + data?.event.title + '\nשם: ' + data?.invite.customerName + '\nתאריך חתימה: ' + new Date().toLocaleDateString('he-IL') + (fullPdfUrl ? '\n\nקישור ל-PDF:\n' + fullPdfUrl : '')
+        'שלום,\nמצורף טופס חתום עבור: ' + data?.event.title + '\nשם: ' + data?.invite.customerName + '\nתאריך חתימה: ' + new Date().toLocaleDateString('he-IL')
       );
       const whatsappUrl = businessPhone
         ? 'https://wa.me/' + businessPhone.replace(/[^0-9]/g, '') + '?text=' + whatsappMessage
         : null;
 
-      // Debug: log PDF error if any
-      if (pdfError) {
-        console.error('PDF Error from server:', pdfError);
-      }
-
       await Swal.fire({
         title: 'הטופס נשלח בהצלחה!',
         html: `
           <div class="space-y-3" dir="rtl">
-            ${pdfUrl ? `<button id="swal-pdf" class="w-full py-3 px-4 rounded-lg text-white font-medium flex items-center justify-center gap-2" style="background-color: #7C3AED;">
+            <button id="swal-pdf" class="w-full py-3 px-4 rounded-lg text-white font-medium flex items-center justify-center gap-2" style="background-color: #7C3AED;">
               📄 פתח PDF
-            </button>` : pdfError ? `<div class="text-xs text-red-500 p-2 bg-red-50 rounded mb-2">שגיאת PDF: ${pdfError}</div>` : ''}
+            </button>
+            <button id="swal-download" class="w-full py-3 px-4 rounded-lg text-white font-medium flex items-center justify-center gap-2" style="background-color: #10B981;">
+              💾 הורד PDF
+            </button>
             <button id="swal-whatsapp" class="w-full py-3 px-4 rounded-lg text-white font-medium flex items-center justify-center gap-2" style="background-color: #25D366;">
               שלח בוואטסאפ
             </button>
             <button id="swal-email" class="w-full py-3 px-4 rounded-lg text-white font-medium flex items-center justify-center gap-2" style="background-color: #3B82F6;">
               שלח במייל
-            </button>
-            <button id="swal-copy" class="w-full py-3 px-4 rounded-lg text-white font-medium flex items-center justify-center gap-2" style="background-color: #EF4444;">
-              📋 העתק קישור
             </button>
             <button id="swal-close" class="w-full py-3 px-4 rounded-lg text-white font-medium flex items-center justify-center gap-2" style="background-color: #6B7280;">
               סגור
@@ -195,7 +220,19 @@ export default function PublicInvite() {
         },
         didOpen: () => {
           document.getElementById('swal-pdf')?.addEventListener('click', () => {
-            if (fullPdfUrl) window.open(fullPdfUrl, '_blank');
+            if (pdfBlob) {
+              openPdfInNewTab(pdfBlob);
+            } else {
+              showToast.error('לא ניתן לפתוח PDF');
+            }
+          });
+          document.getElementById('swal-download')?.addEventListener('click', () => {
+            if (pdfBlob) {
+              const filename = `הסכם-${data?.invite.customerName}-${new Date().toLocaleDateString('he-IL').replace(/\//g, '-')}.pdf`;
+              downloadPdf(pdfBlob, filename);
+            } else {
+              showToast.error('לא ניתן להוריד PDF');
+            }
           });
           document.getElementById('swal-whatsapp')?.addEventListener('click', () => {
             if (whatsappUrl) {
@@ -207,13 +244,9 @@ export default function PublicInvite() {
           });
           document.getElementById('swal-email')?.addEventListener('click', async () => {
             const subject = encodeURIComponent('טופס חתום - ' + data?.event.title);
-            const body = encodeURIComponent('שלום,\n\nמצורף קישור לטופס החתום:\n' + shareUrl + '\n\nשם: ' + data?.invite.customerName + '\nתאריך חתימה: ' + new Date().toLocaleDateString('he-IL') + '\n\nתודה!');
+            const body = encodeURIComponent('שלום,\n\nמצורף טופס חתום.\n\nשם: ' + data?.invite.customerName + '\nתאריך חתימה: ' + new Date().toLocaleDateString('he-IL') + '\n\nתודה!');
             const mailtoUrl = 'mailto:' + (ownerEmail || '') + '?subject=' + subject + '&body=' + body;
             window.open(mailtoUrl, '_blank');
-          });
-          document.getElementById('swal-copy')?.addEventListener('click', () => {
-            navigator.clipboard.writeText(shareUrl);
-            showToast.success('הקישור ל-PDF הועתק!');
           });
           document.getElementById('swal-close')?.addEventListener('click', () => {
             Swal.close();
