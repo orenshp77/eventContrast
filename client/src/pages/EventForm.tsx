@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import Layout from '../components/Layout';
 import { eventsApi } from '../utils/api';
@@ -178,6 +178,9 @@ export default function EventForm() {
     fieldsSchema: DEFAULT_FIELDS,
   });
 
+  const [highlightedFieldId, setHighlightedFieldId] = useState<string | null>(null);
+  const fieldsContainerRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     if (isEdit) {
       fetchEvent();
@@ -224,7 +227,21 @@ export default function EventForm() {
       type: 'text',
       required: false,
     };
-    setFormData({ ...formData, fieldsSchema: [...formData.fieldsSchema, newField] });
+    // Add new field at the beginning
+    setFormData({ ...formData, fieldsSchema: [newField, ...formData.fieldsSchema] });
+
+    // Highlight the new field
+    setHighlightedFieldId(newField.id);
+
+    // Scroll to top of fields container
+    setTimeout(() => {
+      fieldsContainerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
+
+    // Remove highlight after 2 seconds
+    setTimeout(() => {
+      setHighlightedFieldId(null);
+    }, 2000);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -379,9 +396,16 @@ export default function EventForm() {
             </button>
           </div>
 
-          <div className="space-y-4">
+          <div className="space-y-4" ref={fieldsContainerRef}>
             {formData.fieldsSchema.map((field, index) => (
-              <div key={field.id} className="p-5 bg-gradient-to-r from-gray-50 to-primary-50 rounded-xl border border-gray-200 shadow-sm">
+              <div
+                key={field.id}
+                className={`p-5 bg-gradient-to-r from-gray-50 to-primary-50 rounded-xl border shadow-sm transition-all duration-500 ${
+                  highlightedFieldId === field.id
+                    ? 'border-primary-500 ring-4 ring-primary-300 animate-pulse bg-gradient-to-r from-primary-100 to-purple-100'
+                    : 'border-gray-200'
+                }`}
+              >
                 <div className="flex flex-col gap-4">
                   {/* Field name - full width */}
                   <div>
