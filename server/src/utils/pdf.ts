@@ -129,19 +129,32 @@ export async function generatePdf(data: PdfData): Promise<string> {
   console.log('Checking font locations:', fontLocations);
 
   let fontDir = '';
+  // Check for Arial Hebrew font (copied from Windows system fonts)
   for (const loc of fontLocations) {
-    const fontPath = path.join(loc, 'Rubik-Regular.ttf');
+    const fontPath = path.join(loc, 'Arial-Hebrew.ttf');
     const exists = fs.existsSync(fontPath);
     console.log(`Checking ${fontPath}: ${exists ? 'FOUND' : 'not found'}`);
     if (exists) {
-      fontDir = loc;
-      break;
+      // Validate the font file header
+      const buffer = fs.readFileSync(fontPath);
+      const header = buffer.slice(0, 4);
+      const isValid = (header[0] === 0x00 && header[1] === 0x01 && header[2] === 0x00 && header[3] === 0x00) ||
+                     header.toString() === 'OTTO' ||
+                     header.toString() === 'true';
+      console.log(`Font header: ${header[0].toString(16)} ${header[1].toString(16)} ${header[2].toString(16)} ${header[3].toString(16)} - Valid: ${isValid}`);
+      if (isValid) {
+        fontDir = loc;
+        break;
+      }
     }
   }
 
-  // Skip Hebrew fonts for now - use Helvetica
-  const hasHebrewFont = false;
-  console.log('Using Helvetica font (Hebrew fonts disabled for now)');
+  const hasHebrewFont = fontDir !== '';
+  if (hasHebrewFont) {
+    console.log('Using Arial Hebrew font from:', fontDir);
+  } else {
+    console.log('Using Helvetica font (Hebrew fonts not available)');
+  }
 
   return new Promise((resolve, reject) => {
     try {
@@ -160,9 +173,21 @@ export async function generatePdf(data: PdfData): Promise<string> {
       const writeStream = fs.createWriteStream(filePath);
       doc.pipe(writeStream);
 
-      // Use default Helvetica fonts
-      const useFont = 'Helvetica';
-      const useBoldFont = 'Helvetica-Bold';
+      // Register and use fonts
+      let useFont = 'Helvetica';
+      let useBoldFont = 'Helvetica-Bold';
+
+      if (hasHebrewFont) {
+        const regularFontPath = path.join(fontDir, 'Arial-Hebrew.ttf');
+        const boldFontPath = path.join(fontDir, 'Arial-Hebrew-Bold.ttf');
+
+        doc.registerFont('ArialHebrew', regularFontPath);
+        doc.registerFont('ArialHebrew-Bold', boldFontPath);
+
+        useFont = 'ArialHebrew';
+        useBoldFont = 'ArialHebrew-Bold';
+        console.log('Registered Arial Hebrew fonts');
+      }
 
       const pageWidth = 595.28; // A4 width in points
       const margin = 50;
