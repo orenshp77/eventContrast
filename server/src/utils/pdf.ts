@@ -139,8 +139,9 @@ export async function generatePdf(data: PdfData): Promise<string> {
     }
   }
 
-  const hasHebrewFont = fontDir !== '';
-  console.log('Using Hebrew font:', hasHebrewFont, fontDir || 'Helvetica fallback');
+  // Skip Hebrew fonts for now - use Helvetica
+  const hasHebrewFont = false;
+  console.log('Using Helvetica font (Hebrew fonts disabled for now)');
 
   return new Promise((resolve, reject) => {
     try {
@@ -159,16 +160,9 @@ export async function generatePdf(data: PdfData): Promise<string> {
       const writeStream = fs.createWriteStream(filePath);
       doc.pipe(writeStream);
 
-      // Register Hebrew font if available
-      let useFont = 'Helvetica';
-      let useBoldFont = 'Helvetica-Bold';
-
-      if (hasHebrewFont) {
-        doc.registerFont('Rubik', path.join(fontDir, 'Rubik-Regular.ttf'));
-        doc.registerFont('Rubik-Bold', path.join(fontDir, 'Rubik-Bold.ttf'));
-        useFont = 'Rubik';
-        useBoldFont = 'Rubik-Bold';
-      }
+      // Use default Helvetica fonts
+      const useFont = 'Helvetica';
+      const useBoldFont = 'Helvetica-Bold';
 
       const pageWidth = 595.28; // A4 width in points
       const margin = 50;
