@@ -5,7 +5,7 @@
   "main": "dist/index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "npm install --include=dev && tsc",
+    "build": "npm install --include=dev && tsc && cp -r src/fonts dist/",
     "start": "node dist/index.js",
     "lint": "eslint src --ext .ts"
   },
