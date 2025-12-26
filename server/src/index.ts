@@ -3,6 +3,7 @@ import cors from 'cors';
 import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
 import path from 'path';
+import fs from 'fs';
 
 import authRoutes from './routes/auth';
 import eventRoutes from './routes/events';
@@ -12,6 +13,37 @@ import { errorHandler } from './middleware/errorHandler';
 import { initDatabase } from './db/connection';
 
 dotenv.config();
+
+// Log font availability on startup
+function checkFonts() {
+  console.log('=== Font Check at Startup ===');
+  console.log('__dirname:', __dirname);
+  console.log('process.cwd():', process.cwd());
+
+  const fontLocations = [
+    path.join(__dirname, '../fonts'),
+    path.join(__dirname, 'fonts'),
+    path.join(process.cwd(), 'dist/fonts'),
+    path.join(process.cwd(), 'src/fonts'),
+  ];
+
+  for (const loc of fontLocations) {
+    const fontPath = path.join(loc, 'Rubik-Regular.ttf');
+    try {
+      const exists = fs.existsSync(fontPath);
+      console.log(`${loc}: ${exists ? 'FOUND' : 'not found'}`);
+      if (exists) {
+        const files = fs.readdirSync(loc);
+        console.log(`  Files: ${files.join(', ')}`);
+      }
+    } catch (e) {
+      console.log(`${loc}: error checking - ${e}`);
+    }
+  }
+  console.log('=== End Font Check ===');
+}
+
+checkFonts();
 
 const app = express();
 const PORT = process.env.PORT || 10001;
