@@ -315,16 +315,9 @@ export default function EventForm() {
                   <input
                     type="color"
                     name="themeColor"
-                    className="w-12 h-12 rounded-lg cursor-pointer border-0"
+                    className="w-full h-12 rounded-lg cursor-pointer border-0"
                     value={formData.themeColor}
                     onChange={handleChange}
-                  />
-                  <input
-                    type="text"
-                    className="input flex-1"
-                    value={formData.themeColor}
-                    onChange={(e) => setFormData({ ...formData, themeColor: e.target.value })}
-                    dir="ltr"
                   />
                 </div>
               </div>
@@ -419,7 +412,7 @@ export default function EventForm() {
                       </select>
                     </div>
 
-                    <div className="flex flex-col items-start gap-1 pt-2">
+                    <div className="flex flex-col items-center gap-1 pt-2">
                       <label className="text-sm font-medium text-gray-600">בחירה שתוצג בהסכם</label>
                       <button
                         type="button"
