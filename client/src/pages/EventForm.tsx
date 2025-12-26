@@ -416,6 +416,7 @@ export default function EventForm() {
                       <label className="text-sm font-medium text-gray-600">בחירה שתוצג בהסכם</label>
                       <button
                         type="button"
+                        dir="ltr"
                         onClick={() => handleFieldChange(index, { required: !field.required })}
                         className={`relative inline-flex h-7 w-14 items-center rounded-full transition-colors ${
                           field.required ? 'bg-primary-600' : 'bg-gray-300'
