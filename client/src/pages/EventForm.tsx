@@ -244,6 +244,13 @@ export default function EventForm() {
     }, 2000);
   };
 
+  const removeField = (fieldId: string) => {
+    setFormData({
+      ...formData,
+      fieldsSchema: formData.fieldsSchema.filter(f => f.id !== fieldId)
+    });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
@@ -385,28 +392,36 @@ export default function EventForm() {
 
         {/* Fields Schema Card */}
         <div className="card border-2 border-primary-100">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-bold text-gray-900">שדות שניתן להוסיף לטופס ההסכם</h2>
-            <button
-              type="button"
-              onClick={addField}
-              className="btn btn-primary text-base py-2 px-4"
-            >
-              + הוסף שדה
-            </button>
-          </div>
+          <h2 className="text-xl font-bold text-gray-900 mb-4">שדות שניתן להוסיף לטופס ההסכם</h2>
+          <button
+            type="button"
+            onClick={addField}
+            className="btn btn-primary w-full text-base py-3 mb-6"
+          >
+            + הוסף שדה
+          </button>
 
           <div className="space-y-4" ref={fieldsContainerRef}>
             {formData.fieldsSchema.map((field, index) => (
               <div
                 key={field.id}
-                className={`p-5 bg-gradient-to-r from-gray-50 to-primary-50 rounded-xl border shadow-sm transition-all duration-500 ${
+                className={`p-5 bg-gradient-to-r from-gray-50 to-primary-50 rounded-xl border shadow-sm transition-all duration-500 relative ${
                   highlightedFieldId === field.id
                     ? 'border-primary-500 ring-4 ring-primary-300 animate-pulse bg-gradient-to-r from-primary-100 to-purple-100'
                     : 'border-gray-200'
                 }`}
               >
-                <div className="flex flex-col gap-4">
+                {/* Delete button */}
+                <button
+                  type="button"
+                  onClick={() => removeField(field.id)}
+                  className="absolute top-2 right-2 w-6 h-6 flex items-center justify-center rounded-full bg-red-100 text-red-600 hover:bg-red-200 hover:text-red-700 transition-colors text-sm font-bold"
+                  title="מחק שדה"
+                >
+                  ×
+                </button>
+
+                <div className="flex flex-col gap-4 pt-4">
                   {/* Field name - full width */}
                   <div>
                     <label className="input-label text-base font-semibold text-primary-700">שם השדה</label>
