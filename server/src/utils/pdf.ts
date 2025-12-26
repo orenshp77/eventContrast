@@ -121,9 +121,13 @@ export async function generatePdf(data: PdfData): Promise<string> {
 
   const hasHebrewFont = fontDir !== '';
   console.log('Font directory:', fontDir || 'NOT FOUND - using Helvetica');
+  console.log('__dirname:', __dirname);
+  console.log('process.cwd():', process.cwd());
+  console.log('Checking font locations:', fontLocations);
 
   return new Promise((resolve, reject) => {
     try {
+      console.log('Starting PDF generation...');
       // Create PDF document
       const doc = new PDFDocument({
         size: 'A4',
@@ -383,6 +387,7 @@ export async function generatePdf(data: PdfData): Promise<string> {
       });
 
     } catch (error) {
+      console.error('PDF generation error:', error);
       reject(error);
     }
   });
