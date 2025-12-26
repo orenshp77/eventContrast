@@ -100,6 +100,7 @@ router.post('/invite/:token/submit', async (req, res, next) => {
     // Generate PDF
     let pdfPath = null;
     try {
+      console.log('Starting PDF generation for invite:', invite.invite_id);
       pdfPath = await generatePdf({
         event: {
           title: invite.title,
@@ -124,9 +125,13 @@ router.post('/invite/:token/submit', async (req, res, next) => {
         signature: data.signature,
         submittedAt: new Date(),
       });
-    } catch (pdfError) {
-      console.error('PDF generation failed:', pdfError);
-      // Continue without PDF
+      console.log('PDF generated successfully:', pdfPath);
+    } catch (pdfError: unknown) {
+      const errorMessage = pdfError instanceof Error ? pdfError.message : String(pdfError);
+      const errorStack = pdfError instanceof Error ? pdfError.stack : '';
+      console.error('PDF generation failed:', errorMessage);
+      console.error('PDF error stack:', errorStack);
+      // Don't fail the whole submission, but log for debugging
     }
 
     // Save submission (upsert for PostgreSQL)
