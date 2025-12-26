@@ -149,6 +149,7 @@ export default function PublicInvite() {
 
       // Show success popup with options
       const pdfUrl = response.data.pdfUrl;
+      const pdfError = response.data.pdfError;
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:10001';
       const fullPdfUrl = pdfUrl ? apiUrl + pdfUrl : null;
       const businessPhone = data?.event.businessPhone;
@@ -161,13 +162,18 @@ export default function PublicInvite() {
         ? 'https://wa.me/' + businessPhone.replace(/[^0-9]/g, '') + '?text=' + whatsappMessage
         : null;
 
+      // Debug: log PDF error if any
+      if (pdfError) {
+        console.error('PDF Error from server:', pdfError);
+      }
+
       await Swal.fire({
         title: 'הטופס נשלח בהצלחה!',
         html: `
           <div class="space-y-3" dir="rtl">
             ${pdfUrl ? `<button id="swal-pdf" class="w-full py-3 px-4 rounded-lg text-white font-medium flex items-center justify-center gap-2" style="background-color: #7C3AED;">
               📄 פתח PDF
-            </button>` : ''}
+            </button>` : pdfError ? `<div class="text-xs text-red-500 p-2 bg-red-50 rounded mb-2">שגיאת PDF: ${pdfError}</div>` : ''}
             <button id="swal-whatsapp" class="w-full py-3 px-4 rounded-lg text-white font-medium flex items-center justify-center gap-2" style="background-color: #25D366;">
               שלח בוואטסאפ
             </button>

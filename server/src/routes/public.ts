@@ -99,6 +99,7 @@ router.post('/invite/:token/submit', async (req, res, next) => {
 
     // Generate PDF
     let pdfPath = null;
+    let pdfError = null;
     try {
       console.log('Starting PDF generation for invite:', invite.invite_id);
       pdfPath = await generatePdf({
@@ -126,11 +127,12 @@ router.post('/invite/:token/submit', async (req, res, next) => {
         submittedAt: new Date(),
       });
       console.log('PDF generated successfully:', pdfPath);
-    } catch (pdfError: unknown) {
-      const errorMessage = pdfError instanceof Error ? pdfError.message : String(pdfError);
-      const errorStack = pdfError instanceof Error ? pdfError.stack : '';
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      const errorStack = err instanceof Error ? err.stack : '';
       console.error('PDF generation failed:', errorMessage);
       console.error('PDF error stack:', errorStack);
+      pdfError = errorMessage;
       // Don't fail the whole submission, but log for debugging
     }
 
@@ -165,6 +167,7 @@ router.post('/invite/:token/submit', async (req, res, next) => {
     res.json({
       message: 'הטופס נשלח בהצלחה!',
       pdfUrl: pdfPath ? `/uploads/${pdfPath}` : null,
+      pdfError: pdfError || null,
       whatsappUrl: invite.business_phone
         ? `https://wa.me/${invite.business_phone.replace(/[^0-9]/g, '')}?text=${whatsappMessage}`
         : null,
