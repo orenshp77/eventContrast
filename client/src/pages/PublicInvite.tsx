@@ -149,7 +149,8 @@ export default function PublicInvite() {
 
       // Show success popup with options
       const pdfUrl = response.data.pdfUrl;
-      const fullPdfUrl = pdfUrl ? window.location.origin + pdfUrl : null;
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:10001';
+      const fullPdfUrl = pdfUrl ? apiUrl + pdfUrl : null;
       const businessPhone = data?.event.businessPhone;
       const ownerEmail = response.data.ownerEmail;
       const shareUrl = fullPdfUrl || window.location.href;
