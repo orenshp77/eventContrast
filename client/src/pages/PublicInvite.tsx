@@ -189,7 +189,7 @@ export default function PublicInvite() {
         },
         didOpen: () => {
           document.getElementById('swal-pdf')?.addEventListener('click', () => {
-            if (pdfUrl) window.open(pdfUrl, '_blank');
+            if (fullPdfUrl) window.open(fullPdfUrl, '_blank');
           });
           document.getElementById('swal-whatsapp')?.addEventListener('click', () => {
             if (whatsappUrl) {
