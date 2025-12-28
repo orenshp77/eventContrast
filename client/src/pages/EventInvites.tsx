@@ -44,7 +44,19 @@ export default function EventInvites() {
   const [event, setEvent] = useState<Event | null>(null);
   const [invites, setInvites] = useState<Invite[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Filter invites based on search query
+  const filteredInvites = invites.filter((invite) => {
+    if (!searchQuery.trim()) return true;
+    const query = searchQuery.toLowerCase().trim();
+    return (
+      invite.customerName?.toLowerCase().includes(query) ||
+      invite.customerPhone?.toLowerCase().includes(query) ||
+      invite.customerEmail?.toLowerCase().includes(query)
+    );
+  });
 
   // Polling function to refresh invites silently
   const refreshInvites = useCallback(async () => {
@@ -497,10 +509,38 @@ export default function EventInvites() {
         </button>
       </div>
 
+      {/* Search Box */}
+      {invites.length > 0 && (
+        <div className="mb-4">
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="חיפוש לפי שם, טלפון או מייל..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="input w-full pr-12"
+            />
+            <svg
+              className="absolute right-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </div>
+          {searchQuery && (
+            <p className="text-sm text-gray-400 mt-2">
+              נמצאו {filteredInvites.length} תוצאות
+            </p>
+          )}
+        </div>
+      )}
+
       {/* Invites List */}
-      {invites.length > 0 ? (
+      {filteredInvites.length > 0 ? (
         <div className="space-y-4">
-          {invites.map((invite, index) => (
+          {filteredInvites.map((invite, index) => (
             <div
               key={invite.id}
               className="card animate-slide-up"
@@ -595,6 +635,15 @@ export default function EventInvites() {
               </div>
             </div>
           ))}
+        </div>
+      ) : invites.length > 0 ? (
+        <div className="card text-center py-16">
+          <div className="text-6xl mb-4">🔍</div>
+          <h3 className="text-xl font-semibold text-gray-900 mb-2">לא נמצאו תוצאות</h3>
+          <p className="text-gray-500 mb-6">נסה לחפש עם מילות חיפוש אחרות</p>
+          <button onClick={() => setSearchQuery('')} className="btn btn-secondary">
+            נקה חיפוש
+          </button>
         </div>
       ) : (
         <div className="card text-center py-16">
