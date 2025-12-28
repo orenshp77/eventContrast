@@ -518,10 +518,10 @@ export default function EventInvites() {
               placeholder="חיפוש לפי שם, טלפון או מייל..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="input w-full pr-12"
+              className="input w-full pl-12"
             />
             <svg
-              className="absolute right-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400"
+              className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
