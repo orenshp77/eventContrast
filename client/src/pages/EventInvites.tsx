@@ -467,7 +467,7 @@ export default function EventInvites() {
       {/* Header */}
       <div className="flex flex-col items-center text-center mb-6">
         <div className="mb-4">
-          <h1 className="text-2xl font-bold text-gray-900">{event?.title}</h1>
+          <h1 className="text-2xl font-bold text-white">{event?.title}</h1>
           <p className="text-base text-gray-500">{invites.length} הסכמים</p>
         </div>
         <button onClick={handleCreateInvite} className="btn btn-primary text-lg px-8">
@@ -542,7 +542,7 @@ export default function EventInvites() {
                   onClick={() => handleView(invite)}
                   className="btn btn-secondary text-sm py-2"
                 >
-                  👁️ צפייה
+                  👁️ צפייה בעמוד לקוח
                 </button>
                 {invite.submission && (
                   <button
@@ -556,13 +556,13 @@ export default function EventInvites() {
                   onClick={() => handleEdit(invite)}
                   className="btn btn-secondary text-sm py-2"
                 >
-                  ✏️ עריכה
+                  ✏️ שינוי פרטי ההסכם
                 </button>
                 <button
                   onClick={() => handleResend(invite)}
                   className="btn btn-whatsapp text-sm py-2"
                 >
-                  📱 שלח
+                  📱 שלחו את ההסכם
                 </button>
                 <button
                   onClick={() => handleDelete(invite)}
