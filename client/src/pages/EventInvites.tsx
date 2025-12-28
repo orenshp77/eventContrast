@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import Layout from '../components/Layout';
 import { eventsApi, invitesApi } from '../utils/api';
@@ -44,10 +44,32 @@ export default function EventInvites() {
   const [event, setEvent] = useState<Event | null>(null);
   const [invites, setInvites] = useState<Invite[]>([]);
   const [loading, setLoading] = useState(true);
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // Polling function to refresh invites silently
+  const refreshInvites = useCallback(async () => {
+    if (!id) return;
+    try {
+      const invitesRes = await invitesApi.getByEvent(Number(id));
+      setInvites(invitesRes.data);
+    } catch (error) {
+      // Silent fail for polling
+    }
+  }, [id]);
+
+  // Start polling when component mounts
   useEffect(() => {
     fetchData();
-  }, [id]);
+
+    // Start polling every 5 seconds
+    pollingRef.current = setInterval(refreshInvites, 5000);
+
+    return () => {
+      if (pollingRef.current) {
+        clearInterval(pollingRef.current);
+      }
+    };
+  }, [id, refreshInvites]);
 
   const fetchData = async () => {
     try {
