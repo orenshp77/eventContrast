@@ -153,10 +153,10 @@ export default function Dashboard() {
     <Layout>
       {/* Welcome Section */}
       <div className="mb-4">
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">
-          שלום, {user?.name} 👋
+        <h1 className="text-2xl font-bold text-white mb-2">
+          שלום, {user?.name}
         </h1>
-        <p className="text-gray-600">
+        <p className="text-white">
           ברוך הבא למערכת ההסכמים הדיגיטליים
         </p>
       </div>
