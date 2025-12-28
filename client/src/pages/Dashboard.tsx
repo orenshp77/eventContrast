@@ -196,7 +196,7 @@ export default function Dashboard() {
             </svg>
           </div>
           <div className="text-right">
-            <div className="text-2xl font-bold">הסכם חדש</div>
+            <div className="text-2xl font-bold">הסכם חדש ללקוח</div>
             <div className="text-white/80 text-sm">צור הסכם ושלח ללקוח</div>
           </div>
         </div>
@@ -316,7 +316,7 @@ export default function Dashboard() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>
-                <h2 className="text-xl font-bold">הסכם חדש</h2>
+                <h2 className="text-xl font-bold">הסכם חדש ללקוח</h2>
               </div>
             </div>
 

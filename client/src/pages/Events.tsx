@@ -66,7 +66,7 @@ export default function Events() {
     const firstEventDate = firstEvent?.eventDate ? firstEvent.eventDate.split('T')[0] : '';
 
     const { value: formValues } = await Swal.fire({
-      title: 'הסכם חדש',
+      title: 'הסכם חדש ללקוח',
       html: `
         <div class="space-y-4 text-right" dir="rtl">
           <div>

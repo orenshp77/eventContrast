@@ -97,7 +97,7 @@ export default function EventInvites() {
     ` : '';
 
     const { value: formValues } = await Swal.fire({
-      title: 'הסכם חדש',
+      title: 'הסכם חדש ללקוח',
       html: `
         <div class="space-y-4 text-right" dir="rtl">
           ${priceSection}
