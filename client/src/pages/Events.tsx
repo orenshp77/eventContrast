@@ -258,7 +258,7 @@ export default function Events() {
     <Layout title="חזרה" showBack>
       {/* Header with Add Buttons */}
       <div className="flex flex-col items-center text-center mb-6">
-        <h1 className="text-2xl font-bold text-white mb-4">סוגי ההסכמים שלי</h1>
+        <h1 className="text-2xl font-bold text-white mb-4">הסכמים שיצרתי ללקוחות</h1>
         <div className="flex gap-2 w-full">
           <button onClick={handleCreateInvite} className="btn btn-primary flex-1">
             הסכם חדש ללקוח
