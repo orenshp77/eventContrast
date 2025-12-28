@@ -348,6 +348,7 @@ export default function PublicInvite() {
                 ) : (
                   <input
                     type={field.type}
+                    inputMode={field.type === 'tel' ? 'tel' : field.type === 'number' ? 'numeric' : field.type === 'email' ? 'email' : undefined}
                     className={`input ${errors[field.id] ? 'border-red-500' : ''}`}
                     placeholder={field.placeholder}
                     value={formValues[field.id] || ''}
