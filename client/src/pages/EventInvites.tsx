@@ -2,8 +2,9 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import Layout from '../components/Layout';
 import { eventsApi, invitesApi } from '../utils/api';
-import { showConfirm, showToast } from '../utils/swal';
+import { showConfirm, showToast, showLoading, hideLoading } from '../utils/swal';
 import Swal from 'sweetalert2';
+import { generatePdfFromHtml, openPdfInNewTab } from '../utils/pdfGenerator';
 
 interface Invite {
   id: number;
@@ -20,6 +21,8 @@ interface Invite {
   createdAt: string;
   submission?: {
     signedPdfPath?: string;
+    signaturePng?: string;
+    payload?: Record<string, any>;
     submittedAt: string;
   };
 }
@@ -27,9 +30,13 @@ interface Invite {
 interface Event {
   id: number;
   title: string;
+  description?: string;
   themeColor: string;
   price?: number;
   eventDate?: string;
+  defaultText?: string;
+  businessName?: string;
+  businessPhone?: string;
 }
 
 export default function EventInvites() {
@@ -208,6 +215,48 @@ export default function EventInvites() {
     }
   };
 
+  const handleViewSignedPdf = async (invite: Invite) => {
+    if (!invite.submission || !event) {
+      showToast.error('לא נמצאו נתוני ההסכם');
+      return;
+    }
+
+    showLoading('מייצר PDF...');
+
+    try {
+      const pdfBlob = await generatePdfFromHtml({
+        event: {
+          title: event.title,
+          description: event.description,
+          themeColor: event.themeColor,
+          price: invite.price || event.price,
+          eventDate: invite.eventDate || event.eventDate,
+          defaultText: event.defaultText,
+          businessName: event.businessName,
+          businessPhone: event.businessPhone,
+        },
+        customer: {
+          name: invite.customerName,
+          phone: invite.customerPhone,
+          email: invite.customerEmail,
+          eventType: invite.eventType,
+          eventLocation: invite.eventLocation,
+          notes: invite.notes,
+          ...(invite.submission.payload || {}),
+        },
+        signature: invite.submission.signaturePng || '',
+        submittedAt: new Date(invite.submission.submittedAt),
+      });
+
+      hideLoading();
+      openPdfInNewTab(pdfBlob);
+    } catch (error) {
+      hideLoading();
+      console.error('PDF generation error:', error);
+      showToast.error('שגיאה ביצירת PDF');
+    }
+  };
+
   const handleResend = async (invite: Invite) => {
     const inviteUrl = `${window.location.origin}/invite/${invite.token}`;
     const whatsappMessage = encodeURIComponent(
@@ -217,13 +266,13 @@ export default function EventInvites() {
       ? `https://wa.me/${invite.customerPhone.replace(/[^0-9]/g, '')}?text=${whatsappMessage}`
       : null;
 
-    const hasPdf = invite.submission?.signedPdfPath;
+    const hasSubmission = !!invite.submission;
 
     await Swal.fire({
       title: 'בחר פעולה',
       html: `
         <div class="space-y-3" dir="rtl">
-          ${hasPdf ? `
+          ${hasSubmission ? `
             <button id="action-pdf" class="w-full px-4 py-3 rounded-lg text-white font-medium" style="background-color: #8B5CF6;">
               📄 פתח PDF
             </button>
@@ -253,7 +302,7 @@ export default function EventInvites() {
         if (pdfBtn) {
           pdfBtn.addEventListener('click', () => {
             Swal.close();
-            window.open(`/uploads/${invite.submission?.signedPdfPath}`, '_blank');
+            handleViewSignedPdf(invite);
           });
         }
 
@@ -495,9 +544,9 @@ export default function EventInvites() {
                 >
                   👁️ צפייה
                 </button>
-                {invite.submission?.signedPdfPath && (
+                {invite.submission && (
                   <button
-                    onClick={() => window.open(`/uploads/${invite.submission?.signedPdfPath}`, '_blank')}
+                    onClick={() => handleViewSignedPdf(invite)}
                     className="btn text-sm py-2 bg-purple-100 text-purple-700 hover:bg-purple-200"
                   >
                     📄 צפייה בהסכם חתום
