@@ -270,14 +270,14 @@ export default function Dashboard() {
                     to={`/events/${event.id}/invites`}
                     className="btn btn-primary w-full text-sm py-2"
                   >
-                    ניהול הסכמי לקוחות
+                    הסכמים שיצרתי ללקוחות
                   </Link>
                   <div className="flex gap-2">
                     <Link
                       to={`/events/${event.id}/edit`}
                       className="btn btn-secondary flex-1 text-sm py-2"
                     >
-                      ערוך
+                      שינוי פרטי סוג ההסכם
                     </Link>
                     <button
                       onClick={(e) => handleDeleteEvent(e, event.id, event.title)}

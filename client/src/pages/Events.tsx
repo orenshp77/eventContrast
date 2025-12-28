@@ -337,7 +337,7 @@ export default function Events() {
                     to={`/events/${event.id}/invites`}
                     className="btn btn-primary flex-1"
                   >
-                    ניהול הסכמים ללקוחות
+                    הסכמים שיצרתי ללקוחות
                   </Link>
                   <Link
                     to={`/events/${event.id}/edit`}
