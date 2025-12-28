@@ -515,7 +515,7 @@ export default function EventInvites() {
           <div className="relative">
             <input
               type="text"
-              placeholder="חיפוש לפי שם, טלפון או מייל..."
+              placeholder="חיפוש הסכם"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="input w-full pl-12"
