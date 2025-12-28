@@ -223,7 +223,7 @@ export default function Dashboard() {
       {/* Recent Events */}
       <div className="mb-4">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-gray-900">אירועים אחרונים</h2>
+          <h2 className="text-lg font-semibold text-white">הסכמים אחרונים</h2>
           <Link to="/events" className="text-primary-600 text-sm font-medium">
             הצג הכל
           </Link>
