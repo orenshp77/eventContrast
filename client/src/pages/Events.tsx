@@ -343,7 +343,7 @@ export default function Events() {
                     to={`/events/${event.id}/edit`}
                     className="btn btn-secondary flex-1"
                   >
-                    ערוך
+                    שינוי פרטי סוג ההסכם
                   </Link>
                 </div>
                 <button
