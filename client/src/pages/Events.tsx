@@ -255,7 +255,7 @@ export default function Events() {
   };
 
   return (
-    <Layout title="סוגי ההסכמים שלי" showBack>
+    <Layout title="חזרה" showBack>
       {/* Header with Add Buttons */}
       <div className="flex flex-col items-center text-center mb-6">
         <h1 className="text-2xl font-bold text-gray-900 mb-4">סוגי ההסכמים שלי</h1>

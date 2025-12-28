@@ -287,7 +287,7 @@ export default function EventForm() {
 
   if (loading) {
     return (
-      <Layout title={isEdit ? 'עריכת אירוע' : 'אירוע חדש'} showBack>
+      <Layout title="חזרה" showBack>
         <div className="flex items-center justify-center py-20">
           <div className="animate-spin rounded-full h-12 w-12 border-4 border-primary-600 border-t-transparent"></div>
         </div>
@@ -296,7 +296,7 @@ export default function EventForm() {
   }
 
   return (
-    <Layout title={isEdit ? 'עריכת אירוע' : `ההסכמים שלי מסוג: ${formData.title || ''}`} showBack>
+    <Layout title="חזרה" showBack>
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Basic Info Card */}
         <div className="card">
