@@ -107,11 +107,11 @@ export default function Admin() {
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
 
-      showToast('success', `נכנסת כמשתמש ${userName}`);
+      showToast.success(`נכנסת כמשתמש ${userName}`);
       navigate('/');
       window.location.reload();
     } catch (err: any) {
-      showToast('error', err.message);
+      showToast.error(err.message);
     }
   };
 
@@ -133,10 +133,10 @@ export default function Admin() {
         throw new Error('Failed to delete user');
       }
 
-      showToast('success', `המשתמש ${userName} נמחק בהצלחה`);
+      showToast.success(`המשתמש ${userName} נמחק בהצלחה`);
       fetchUsers(adminToken);
     } catch (err: any) {
-      showToast('error', err.message);
+      showToast.error(err.message);
     }
   };
 
