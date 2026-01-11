@@ -9,6 +9,7 @@ import authRoutes from './routes/auth';
 import eventRoutes from './routes/events';
 import inviteRoutes from './routes/invites';
 import publicRoutes from './routes/public';
+import adminRoutes from './routes/admin';
 import { errorHandler } from './middleware/errorHandler';
 import { initDatabase } from './db/connection';
 
@@ -80,6 +81,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/events', eventRoutes);
 app.use('/api/invites', inviteRoutes);
 app.use('/api/public', publicLimiter, publicRoutes);
+app.use('/api/admin', adminRoutes);
 app.use('/api/public/invite/:token/submit', submitLimiter);
 
 // Health check

@@ -9,6 +9,7 @@ import Events from './pages/Events';
 import EventForm from './pages/EventForm';
 import EventInvites from './pages/EventInvites';
 import PublicInvite from './pages/PublicInvite';
+import Admin from './pages/Admin';
 
 // Protected Route Component
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -49,6 +50,7 @@ function AppRoutes() {
       <Route path="/login" element={user ? <Navigate to="/dashboard" replace /> : <Login />} />
       <Route path="/register" element={user ? <Navigate to="/dashboard" replace /> : <Register />} />
       <Route path="/invite/:token" element={<PublicInvite />} />
+      <Route path="/admin" element={<Admin />} />
 
       {/* Protected Routes */}
       <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
